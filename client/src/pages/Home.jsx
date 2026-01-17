@@ -1,51 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { 
-    LogOut, Zap, Package, Clock, TrendingUp, Compass, Newspaper, 
-    Calendar, Info, Github, Twitter, Mail, Phone, ShieldCheck, Leaf,
-    LogIn, X, Heart, User, ChevronDown, Settings, Bell, Menu
+    LogOut, Zap, Package, Clock, Leaf, LogIn, X, User, ChevronDown, 
+    Menu, ShieldCheck, BarChart3, Globe, Activity, ChevronRight, 
+    Github, Mail, Settings, UserCircle, Bell, Search
 } from 'lucide-react'; 
 
-import backgroundRecycle from '../assets/background-recycle.jpg'; 
 import heroPic1 from '../assets/hero-pic-1.jpg'; 
 import heroPic2 from '../assets/hero-pic-2.jpg'; 
 
-// Production Backend URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const ContentCard = ({ title, snippet, tag, date }) => (
-    <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200 cursor-pointer group h-full">
-        <div className="flex justify-between items-start mb-2">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                tag === 'Event' ? 'bg-orange-100 text-orange-700' : 
-                tag === 'Recycling Fact' ? 'bg-green-100 text-green-700' : 
-                'bg-blue-100 text-blue-700'
-            }`}>
-                {tag}
-            </span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase">{date}</span>
-        </div>
-        <h3 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-[#4CAF50] transition-colors">{title}</h3>
-        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{snippet}</p>
-    </div>
-);
-
-const StatDisplay = ({ icon: Icon, value, unit }) => (
-    <div className="flex items-center space-x-2 bg-white px-3 py-1 rounded-full border border-gray-300 shadow-sm">
-        <Icon className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
-        <span className="font-bold text-yellow-700 text-sm md:text-lg">{value} <span className="text-[10px] md:text-sm font-medium">{unit}</span></span>
-    </div>
-);
-
-const NavLink = ({ to, label, navigate, mobile }) => (
-    <a 
-        onClick={() => navigate(to)} 
-        className={`${mobile ? 'block py-3 border-b border-gray-100 text-lg' : 'text-sm'} text-gray-600 hover:text-[#4CAF50] transition font-medium cursor-pointer`}
-    >
-        {label}
-    </a>
-);
 
 export default function Home() {
     const navigate = useNavigate();
@@ -54,55 +19,24 @@ export default function Home() {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const dropdownRef = useRef(null);
     const [campaigns, setCampaigns] = useState([]); 
-    const [showLoginModal, setShowLoginModal] = useState(false);
-    const [userStats, setUserStats] = useState({ points: 0, itemsLogged: 0 }); 
+    const [userStats, setUserStats] = useState({ points: 0, itemsLogged: 0 });
+    const dropdownRef = useRef(null);
 
-    const StatCard = ({ icon: Icon, title, value, unit, colorClass, shadowClass }) => (
-        <div className={`bg-white p-5 rounded-xl shadow-lg border border-gray-200 flex flex-col justify-between transform transition-all duration-200 hover:shadow-xl hover:border-[#4CAF50] cursor-pointer`}>
-            <div className="flex items-center space-x-3 mb-2">
-                <div className={`p-2 rounded-lg ${shadowClass} bg-opacity-10`}>
-                    <Icon className={`h-6 w-6 ${colorClass}`} />
-                </div>
-                <p className="text-sm text-gray-500 uppercase font-semibold">{title}</p>
-            </div>
-            <h3 className="text-2xl md:text-3xl font-extrabold text-gray-800 leading-none">
-                {value} <span className="text-base font-medium text-gray-400">{unit}</span>
-            </h3>
-        </div>
-    );
-    
-    const fetchUserStats = async (userId) => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/api/waste/stats/${userId}`);
-            setUserStats(res.data);
-        } catch (error) {
-            setUserStats({ points: 0, itemsLogged: 0 });
-        }
-    };
-
-    const fetchCampaigns = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/api/campaigns`);
-            // FEATURE: Filter out archived posts
-            const visiblePosts = res.data.filter(post => post.status === 'Active' || !post.status);
-            setCampaigns(visiblePosts);
-        } catch (error) {
-            console.error("Failed to fetch campaigns:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const isAdmin = user?.role === 'admin';
 
     useEffect(() => {
         const userInfoString = localStorage.getItem('userInfo');
         if (userInfoString) {
-            const loggedUser = JSON.parse(userInfoString);
-            setUser(loggedUser);
-            fetchUserStats(loggedUser._id); 
+            try {
+                const loggedUser = JSON.parse(userInfoString);
+                if (loggedUser?._id) {
+                    setUser(loggedUser);
+                    fetchUserStats(loggedUser._id);
+                }
+            } catch (e) { localStorage.removeItem('userInfo'); }
         }
-        fetchCampaigns(); 
+        fetchCampaigns();
 
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -113,230 +47,212 @@ export default function Home() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleProtectedAction = (path) => {
-        if (!user) {
-            setShowLoginModal(true);
-        } else {
-            navigate(path);
-        }
+    const fetchUserStats = async (userId) => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/waste/stats/${userId}`);
+            setUserStats(res.data);
+        } catch (error) { setUserStats({ points: 0, itemsLogged: 0 }); }
+    };
+
+    const fetchCampaigns = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/campaigns`);
+            setCampaigns(res.data.filter(p => p.status === 'Active' || !p.status).slice(0, 6));
+        } catch (err) { console.error(err); } finally { setLoading(false); }
     };
 
     const handleLogout = () => {
         setIsLoggingOut(true);
-        setShowProfileDropdown(false);
-        
         setTimeout(() => {
             localStorage.removeItem('userInfo');
             setUser(null);
-            setIsLoggingOut(false);
             navigate('/');
-        }, 1200);
+            setIsLoggingOut(false);
+            setIsMobileMenuOpen(false);
+        }, 800);
     };
 
-    if (loading) {
-        return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-[#4CAF50] font-semibold tracking-widest animate-pulse text-lg text-center px-4">LOADING ECO-DASHBOARD...</div>;
-    }
+    if (loading) return (
+        <div className="h-screen flex items-center justify-center bg-white">
+            <div className="w-10 h-10 border-4 border-[#4CAF50] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen relative overflow-hidden font-sans flex flex-col">
-            {isLoggingOut && (
-                <div className="fixed inset-0 z-[110] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center">
-                    <div className="w-12 h-12 border-4 border-[#4CAF50] border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-[#4CAF50] font-bold tracking-widest animate-pulse">SECURING YOUR SESSION...</p>
-                </div>
-            )}
-
-            <div 
-                className="absolute inset-0 bg-cover bg-center z-0" 
-                style={{ backgroundImage: `url(${backgroundRecycle})`, filter: 'blur(8px)', transform: 'scale(1.05)' }}
-            />
-            <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-0" />
+        <div className="min-h-screen font-sans flex flex-col overflow-x-hidden bg-[#F8FAFC] text-slate-900">
             
-            <header className="bg-white/95 shadow-md sticky top-0 z-40 backdrop-blur-sm border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-8 flex justify-between items-center h-16">
-                    <div className="text-xl md:text-2xl font-black text-[#4CAF50] tracking-tighter flex items-center gap-2 italic cursor-pointer" onClick={() => navigate('/')}>
-                        <Leaf className="h-6 w-6" /> EcoCycle
+            {/* --- MASTER NAVBAR --- */}
+            <header className="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 lg:px-8 h-16 flex justify-between items-center">
+                    
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => navigate('/')}>
+                            <div className="bg-[#4CAF50] p-1.5 rounded-lg shadow-md group-hover:rotate-12 transition-transform">
+                                <Leaf className="text-white h-5 w-5" />
+                            </div>
+                            <span className="text-xl font-black tracking-tighter uppercase italic">EcoCycle</span>
+                        </div>
+
+                        {/* PC NAVIGATION: VISIBLE ONLY ON DESKTOP */}
+                        <nav className="hidden lg:flex items-center gap-6">
+                            <button onClick={() => navigate('/home')} className="text-sm font-bold text-[#4CAF50] hover:opacity-80 transition-opacity cursor-pointer">Home</button>
+                            <button onClick={() => navigate('/log-waste')} className="text-sm font-bold text-slate-500 hover:text-[#4CAF50] transition-colors cursor-pointer">Log Waste</button>
+                            <button onClick={() => user ? navigate('/my-activity') : navigate('/login')} className="text-sm font-bold text-slate-600 hover:text-[#4CAF50] transition-colors cursor-pointer">Pickup Request</button>
+                            {isAdmin && <button onClick={() => navigate('/admin-panel')} className="text-[10px] font-black text-teal-600 border border-teal-200 px-3 py-1.5 rounded-xl uppercase tracking-widest cursor-pointer hover:bg-teal-50 transition-all">Admin Node</button>}
+                        </nav>
                     </div>
 
-                    <nav className="hidden md:flex space-x-6 items-center">
-                        <NavLink to="/home" label="Home" navigate={navigate} />
-                        <button onClick={() => handleProtectedAction('/my-activity')} className="text-gray-600 text-sm hover:text-[#4CAF50] transition font-medium cursor-pointer">My Activity</button>
-                        <NavLink to="#" label="Community" navigate={navigate} />
-                        
-                        {user ? (
-                            <div className="flex items-center space-x-4">
-                                <StatDisplay icon={Zap} value={userStats.points} unit="pts" /> 
-                                <div className="relative" ref={dropdownRef}>
-                                    <button 
-                                        onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                                        className="flex items-center gap-3 px-2 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
-                                    >
-                                        <div className="w-8 h-8 bg-[#4CAF50] rounded-lg flex items-center justify-center text-white font-black text-sm shadow-sm">
-                                            {user.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="hidden sm:block text-left">
-                                            <p className="text-xs font-black text-gray-800 leading-none">{user.name.split(' ')[0]}</p>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Citizen</p>
-                                        </div>
-                                        <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-300 ${showProfileDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
+                    <div className="flex items-center gap-3">
+                        {user && (
+                            <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200">
+                                <Zap size={14} className="text-yellow-500 fill-yellow-500 animate-pulse" />
+                                <span className="text-xs font-black text-yellow-700 uppercase tracking-tighter">{userStats.points} Coins</span>
+                            </div>
+                        )}
 
-                                    {showProfileDropdown && (
-                                        <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 animate-fadeIn z-50 overflow-hidden">
-                                            <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/30">
-                                                <p className="text-sm font-black text-gray-800">{user.name}</p>
-                                                <p className="text-[10px] text-gray-500 truncate font-medium">{user.email}</p>
-                                            </div>
-                                            <div className="py-2">
-                                                <button className="w-full flex items-center space-x-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-green-50 hover:text-[#4CAF50] transition-colors cursor-pointer">
-                                                    <User className="h-4 w-4" /> <span>My Profile</span>
-                                                </button>
-                                                <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-2.5 text-xs font-black text-red-500 hover:bg-red-50 transition-colors uppercase tracking-widest cursor-pointer">
-                                                    <LogOut className="h-4 w-4" /> <span>Sign Out</span>
-                                                </button>
-                                            </div>
+                        {/* ENHANCED PROFILE BUTTON (PC ONLY) */}
+                        {user ? (
+                            <div className="hidden lg:block relative" ref={dropdownRef}>
+                                <button 
+                                    onClick={() => setShowProfileDropdown(!showProfileDropdown)} 
+                                    className={`flex items-center gap-3 p-1.5 pr-4 rounded-2xl border transition-all cursor-pointer active:scale-95 ${showProfileDropdown ? 'bg-slate-50 border-slate-300 shadow-inner' : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'}`}
+                                >
+                                    <div className="h-8 w-8 bg-slate-900 rounded-xl flex items-center justify-center text-[#4CAF50] font-black text-sm shadow-md overflow-hidden">
+                                        {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="text-left leading-none">
+                                        <p className="text-[11px] font-black text-slate-800 mb-1 uppercase tracking-tight">{user.name.split(' ')[0]}</p>
+                                        <p className="text-[9px] font-bold text-[#4CAF50] uppercase tracking-widest">Member</p>
+                                    </div>
+                                    <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {showProfileDropdown && (
+                                    <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                                        <div className="px-4 py-3 border-b border-slate-50 mb-1">
+                                            <p className="text-xs font-black text-slate-900 truncate">{user.name}</p>
+                                            <p className="text-[10px] text-slate-400 font-medium">{user.email}</p>
                                         </div>
-                                    )}
-                                </div>
+                                        <div className="p-1 space-y-1">
+                                            <button className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"><UserCircle size={16} /> My Profile</button>
+                                            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"><LogOut size={16} /> Sign Out</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            <button onClick={() => navigate('/login')} className="flex items-center space-x-2 bg-[#4CAF50] text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-[#388E3C] transition-all shadow-lg shadow-green-100 cursor-pointer">
-                                <LogIn className="h-4 w-4" /> <span>Sign In</span>
-                            </button>
+                            <button onClick={() => navigate('/login')} className="hidden lg:block bg-[#4CAF50] text-white px-6 py-2.5 rounded-xl text-xs font-bold active:scale-95 cursor-pointer uppercase tracking-widest shadow-lg">Sign In</button>
                         )}
-                    </nav>
-
-                    <div className="md:hidden flex items-center gap-3">
-                        {user && <StatDisplay icon={Zap} value={userStats.points} unit="pts" />}
-                        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-gray-600 focus:outline-none cursor-pointer">
-                            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                        
+                        {/* ROLLING HAMBURGER (MOBILE ONLY) */}
+                        <button 
+                            className="lg:hidden relative w-10 h-10 flex items-center justify-center text-slate-900 bg-slate-100 rounded-xl active:scale-90 transition-all cursor-pointer" 
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            <div className={`transition-transform duration-500 ${isMobileMenuOpen ? 'rotate-[360deg]' : 'rotate-0'}`}>
+                                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            </div>
                         </button>
                     </div>
                 </div>
-
-                {isMobileMenuOpen && (
-                    <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 animate-fadeIn shadow-xl">
-                        <NavLink mobile to="/home" label="Home" navigate={navigate} />
-                        <button onClick={() => {setIsMobileMenuOpen(false); handleProtectedAction('/my-activity');}} className="w-full text-left py-3 border-b border-gray-100 text-lg text-gray-600 font-medium cursor-pointer">My Activity</button>
-                        <NavLink mobile to="#" label="Community" navigate={navigate} />
-                        {!user && (
-                            <button onClick={() => navigate('/login')} className="w-full mt-4 bg-[#4CAF50] text-white py-3 rounded-xl font-bold cursor-pointer">Sign In</button>
-                        )}
-                        {user && (
-                            <button onClick={handleLogout} className="w-full mt-4 bg-red-50 text-red-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-pointer">
-                                <LogOut size={18} /> Logout
-                            </button>
-                        )}
-                    </div>
-                )}
             </header>
 
-            <main className="max-w-7xl mx-auto py-6 md:py-10 px-4 sm:px-8 relative z-10 flex-grow w-full">
-                <div className="mb-10 p-6 md:p-8 bg-white/90 backdrop-blur-sm rounded-[2rem] shadow-2xl border-l-8 border-[#4CAF50] animate-fadeIn">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                        <div className="flex-1 min-w-0 text-center md:text-left">
-                            <h1 className="text-3xl md:text-4xl font-black text-gray-800 mb-2 tracking-tight">
-                                {user ? `Hi, ${user.name.split(' ')[0]}!` : "Welcome to EcoCycle"}
-                            </h1>
-                            <p className="text-lg md:text-xl text-gray-600 mb-8 font-medium">
-                                {user ? "Ready to log your next contribution?" : "Join us in our mission to recycle and restore the planet."}
-                            </p>
-                            
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                                <button 
-                                    onClick={() => handleProtectedAction('/log-waste')} 
-                                    className="flex items-center justify-center space-x-2 bg-[#4CAF50] text-white font-black px-8 py-3.5 rounded-2xl hover:bg-[#388E3C] transition-all duration-200 shadow-xl shadow-green-100 active:scale-95 cursor-pointer">
-                                    <Package className="h-5 w-5"/>
-                                    <span>Log Waste</span>
-                                </button>
-                                <button 
-                                    onClick={() => handleProtectedAction('/my-activity')}
-                                    className="flex items-center justify-center space-x-2 border-2 border-gray-200 bg-white text-gray-700 font-black px-8 py-3.5 rounded-2xl hover:bg-gray-50 transition-all duration-200 active:scale-95 cursor-pointer">
-                                    <Clock className="h-5 w-5"/>
-                                    <span>Pickup Request</span>
-                                </button>
-                            </div>
+            <main className="pt-28 pb-12 px-4 lg:px-8 max-w-7xl mx-auto w-full flex-grow relative">
+                {/* HERO */}
+                <div className="flex flex-col lg:grid lg:grid-cols-12 gap-10 items-center mb-16">
+                    <div className="lg:col-span-7 space-y-6 text-center lg:text-left order-2 lg:order-1">
+                        <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-none uppercase italic">
+                            {user ? 'Welcome back, ' : 'Recycle for '} <br />
+                            <span className="text-[#4CAF50] not-italic">{user ? user.name.split(' ')[0] : 'The Future.'}</span>
+                        </h1>
+                        <p className="text-slate-500 text-lg font-medium max-w-xl mx-auto lg:mx-0">Join our movement. Log your waste, earn rewards, and build a sustainable legacy.</p>
+                        <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-4">
+                            <button onClick={() => navigate('/log-waste')} className="bg-[#4CAF50] text-white px-10 py-4 rounded-2xl font-bold shadow-xl active:scale-95 flex items-center justify-center gap-3 cursor-pointer text-xs uppercase tracking-widest hover:bg-black transition-all">Log Waste</button>
+                            <button onClick={() => user ? navigate('/my-activity') : navigate('/login')} className="bg-white text-slate-800 border-2 border-slate-200 px-10 py-4 rounded-2xl font-bold hover:bg-black hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3 cursor-pointer text-xs uppercase tracking-widest">Schedule Pickup</button>
                         </div>
-
-                        <div className="hidden lg:flex space-x-6 ml-6 items-start">
-                            <div className="w-48 h-32 overflow-hidden rounded-[2rem] shadow-2xl border-8 border-white animate-shiftUp">
-                                <img src={heroPic1} alt="Recycling Art" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="w-48 h-32 overflow-hidden rounded-[2rem] shadow-2xl border-8 border-white animate-shiftDown delay-100">
-                                <img src={heroPic2} alt="Recycling Hand" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="lg:col-span-5 w-full order-1 lg:order-2">
+                        <div className="relative group max-w-sm mx-auto lg:max-w-none">
+                            <img src={heroPic1} className="w-full h-[300px] md:h-[450px] rounded-[2.5rem] md:rounded-[3rem] object-cover border-4 md:border-8 border-white shadow-2xl transition-transform group-hover:scale-[1.02]" alt="Hero" />
+                            <div className="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 w-32 h-32 md:w-48 md:h-48 rounded-[1.5rem] md:rounded-[2rem] border-4 md:border-8 border-white shadow-2xl overflow-hidden">
+                                <img src={heroPic2} className="w-full h-full object-cover" alt="HeroSmall" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <h2 className="text-lg md:text-xl font-black text-gray-700 mb-6 uppercase tracking-widest border-b-2 border-gray-100 pb-3 flex items-center gap-2">
-                    <TrendingUp size={24} className="text-[#4CAF50]"/> Quick Stats
-                </h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 animate-fadeIn delay-200">
-                    <StatCard icon={TrendingUp} title="Items Logged" value={userStats.itemsLogged} unit="items" colorClass="text-indigo-600" shadowClass="bg-indigo-100" />
-                    <StatCard icon={Zap} title="Total Points" value={userStats.points} unit="pts" colorClass="text-yellow-600" shadowClass="bg-yellow-100" />
-                    <StatCard icon={Compass} title="Next Goal" value="Silver" unit="Tier" colorClass="text-amber-600" shadowClass="bg-amber-100" />
+                {/* STATS */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-16">
+                    {[
+                        { icon: Package, title: 'Logged', val: userStats.itemsLogged, col: 'bg-blue-500' },
+                        { icon: Zap, title: 'Points', val: userStats.points, col: 'bg-amber-500' },
+                        { icon: Globe, title: 'Rank', val: '#1', col: 'bg-teal-500' },
+                        { icon: Activity, title: 'Goal', val: 'Silver', col: 'bg-purple-600' }
+                    ].map((s, i) => (
+                        <div key={i} className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center text-center md:text-left gap-3 md:gap-5 transition-all">
+                            <div className={`p-2.5 rounded-xl ${s.col} bg-opacity-10 text-${s.col.split('-')[1]}-600`}><s.icon size={20}/></div>
+                            <div>
+                                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{s.title}</p>
+                                <h3 className="text-sm md:text-xl font-black text-slate-900 leading-none">{s.val}</h3>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
-                <h2 className="text-lg md:text-xl font-black text-gray-700 mt-12 md:mt-16 mb-6 uppercase tracking-widest border-b-2 border-gray-100 pb-3 flex items-center gap-2">
-                    <Newspaper size={24} className="text-[#4CAF50]"/> Awareness & News
-                </h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 animate-fadeIn delay-300 mb-20">
-                    {campaigns.length > 0 ? (
-                        campaigns.map((post) => (
-                            <ContentCard key={post._id} title={post.title} snippet={post.content} tag={post.category} date={new Date(post.createdAt).toLocaleDateString()} />
-                        ))
-                    ) : (
-                        <div className="col-span-full py-20 bg-white/50 rounded-3xl border-4 border-dashed border-gray-200 text-center text-gray-400 font-black uppercase tracking-widest">No active reports.</div>
-                    )}
+                <div className="mb-20">
+                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest italic mb-8">Community Feed</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                        {campaigns.map((post) => (
+                            <div key={post._id} className="bg-white rounded-[2rem] border border-slate-100 p-6 md:p-8 hover:shadow-xl transition-all cursor-pointer flex flex-col h-full group">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="bg-green-50 text-[#4CAF50] text-[9px] font-bold px-3 py-1 rounded-full uppercase border border-green-100">{post.category}</span>
+                                    <span className="text-[10px] font-bold text-slate-300">{new Date(post.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#4CAF50] transition-colors uppercase leading-tight mb-4">{post.title}</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed line-clamp-3 mb-6 italic">"{post.content}"</p>
+                                <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 cursor-default"><ShieldCheck size={12} className="text-[#4CAF50]"/> EcoCycle Verified</span>
+                                    <ChevronRight size={18} className="text-[#4CAF50] group-hover:translate-x-2 transition-transform" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </main>
 
-            <footer className="bg-white/90 border-t border-gray-200 relative z-20 backdrop-blur-md pt-12 md:pt-16 pb-8 px-6 mt-auto">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12">
-                        <div className="col-span-1 space-y-4 text-center md:text-left">
-                            <div className="flex items-center justify-center md:justify-start gap-2 text-[#4CAF50] font-black text-2xl tracking-tighter uppercase italic">
-                                <Leaf className="h-7 w-7" /> EcoCycle
-                            </div>
-                            <p className="text-xs text-gray-500 leading-relaxed font-medium">Empowering citizens to create a sustainable future.</p>
-                        </div>
-                        <div className="text-center md:text-left">
-                            <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] mb-4">Resources</h4>
-                            <ul className="space-y-2 text-xs text-gray-500 font-bold">
-                                <li><a onClick={() => navigate('/home')} className="hover:text-[#4CAF50] cursor-pointer">Dashboard Home</a></li>
-                                <li><a onClick={() => handleProtectedAction('/log-waste')} className="hover:text-[#4CAF50] cursor-pointer">Submit Material</a></li>
-                            </ul>
-                        </div>
-                        <div className="text-center md:text-left">
-                            <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] mb-4">Support</h4>
-                            <div className="flex items-center justify-center md:justify-start gap-2 text-xs text-gray-600 font-bold">
-                                <Mail className="h-4 w-4 text-[#4CAF50]" /> <span>help@ecocycle.io</span>
+            {/* MOBILE DROPDOWN DROPDOWN */}
+            <div className={`lg:hidden fixed top-16 left-0 right-0 z-[90] bg-white border-b border-slate-200 shadow-2xl transition-all duration-300 ease-in-out origin-top ${isMobileMenuOpen ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'}`}>
+                <div className="p-6 flex flex-col gap-4">
+                    {user && (
+                        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl mb-2">
+                            <div className="h-12 w-12 bg-slate-900 rounded-xl flex items-center justify-center text-[#4CAF50] font-black text-xl">{user.name.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{user.name}</p>
+                                <p className="text-[10px] font-bold text-[#4CAF50] uppercase tracking-widest leading-none">Verified Member</p>
                             </div>
                         </div>
-                        <div className="bg-green-50 p-6 rounded-3xl border border-green-100">
-                             <div className="text-xl font-black text-green-800 text-center">84% Cleaned</div>
-                             <div className="w-full bg-green-200 h-1.5 rounded-full mt-3 overflow-hidden">
-                                 <div className="bg-green-600 h-full w-[84%]"></div>
-                             </div>
-                        </div>
-                    </div>
-                    <div className="pt-8 border-t border-gray-100 text-center">
-                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">© {new Date().getFullYear()} EcoCycle. By MAHR.</p>
+                    )}
+                    <button onClick={() => {navigate('/home'); setIsMobileMenuOpen(false);}} className="text-lg font-black text-slate-900 uppercase tracking-tighter text-left py-3 border-b border-slate-50 cursor-pointer">Home</button>
+                    <button onClick={() => {navigate('/log-waste'); setIsMobileMenuOpen(false);}} className="text-lg font-black text-slate-900 uppercase tracking-tighter text-left py-3 border-b border-slate-50 cursor-pointer">Log Waste</button>
+                    <button onClick={() => {navigate('/my-activity'); setIsMobileMenuOpen(false);}} className="text-lg font-black text-slate-900 uppercase tracking-tighter text-left py-3 border-b border-slate-50 cursor-pointer">Pickup Request</button>
+                    <div className="flex flex-col gap-3 pt-2">
+                        {user ? (
+                            <button onClick={handleLogout} className="flex items-center justify-center gap-2 p-4 bg-rose-50 text-rose-500 rounded-2xl text-sm font-black uppercase cursor-pointer">Sign Out</button>
+                        ) : (
+                            <button onClick={() => navigate('/login')} className="p-4 bg-[#4CAF50] text-white rounded-2xl text-sm font-black uppercase tracking-widest cursor-pointer">Sign In</button>
+                        )}
                     </div>
                 </div>
-            </footer>
+            </div>
 
-            <style jsx="true">{`
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-                .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
-                @keyframes shiftUp { 0%, 100% { transform: translateY(10px); } 50% { transform: translateY(0px); } }
-                @keyframes shiftDown { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(10px); } }
-                .animate-shiftUp { animation: shiftUp 6s infinite ease-in-out; }
-                .animate-shiftDown { animation: shiftDown 6s infinite ease-in-out; }
-            `}</style>
+            <footer className="bg-white border-t border-slate-200 text-slate-500 py-12 px-6 mt-auto">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
+                    <div className="flex items-center justify-center md:justify-start gap-2 text-slate-900 font-black text-xl italic cursor-pointer" onClick={() => navigate('/')}>
+                        <Leaf className="text-[#4CAF50] h-6 w-6" /> EcoCycle
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">© 2026 Powered by MAHR</p>
+                </div>
+            </footer>
         </div>
     );
 }

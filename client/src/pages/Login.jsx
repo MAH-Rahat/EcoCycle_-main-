@@ -40,11 +40,21 @@ export default function Login() {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
             const res = await axios.post(`${apiUrl}/api/auth/login`, formData); 
+            
             if (res.data) {
+                // FIX: Ensure clean data storage
                 localStorage.setItem('userInfo', JSON.stringify(res.data));
-                if (res.data.role === 'citizen') navigate('/home'); 
-                else if (res.data.role === 'collector') navigate('/collector-dashboard');
-                else if (res.data.role === 'admin') navigate('/admin-panel'); 
+                
+                // Redirection Logic
+                if (res.data.role === 'citizen') {
+                    navigate('/home'); 
+                } else if (res.data.role === 'admin') {
+                    navigate('/admin-panel'); 
+                } else if (res.data.role === 'collector') {
+                    navigate('/collector-dashboard');
+                } else {
+                    navigate('/');
+                }
             }
         } catch (error) {
             alert(error.response?.data?.message || "Login failed");
@@ -54,7 +64,7 @@ export default function Login() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden p-4 font-sans">
             <div className="absolute top-8 left-8 z-20">
-                <button onClick={() => navigate('/')} className="flex items-center space-x-2 text-white/50 hover:text-[#84CC16] transition-colors font-black uppercase text-xs tracking-widest">
+                <button onClick={() => navigate('/')} className="flex items-center space-x-2 text-white/50 hover:text-[#84CC16] transition-colors font-black uppercase text-xs tracking-widest cursor-pointer">
                     <ArrowLeft size={16} />
                     <span>Back to Home</span>
                 </button>
@@ -77,12 +87,12 @@ export default function Login() {
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                     <FloatingInputField icon={Mail} name="email" type="email" label="Email Address" value={formData.email} onChange={handleChange} required={true} />
                     <FloatingInputField icon={Lock} name="password" type={showPassword ? "text" : "password"} label="Password" value={formData.password} onChange={handleChange} required={true}>
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-3 text-gray-400 hover:text-[#84CC16] transition-colors">
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-3 text-gray-400 hover:text-[#84CC16] transition-colors cursor-pointer">
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                     </FloatingInputField>
 
-                    <button type="submit" className="w-full flex items-center justify-center space-x-2 bg-[#84CC16] text-gray-900 font-black py-4 rounded-2xl mt-4 hover:bg-white hover:scale-[1.02] transition-all duration-300 shadow-xl shadow-lime-900/20 text-sm uppercase tracking-[0.2em] active:scale-95">
+                    <button type="submit" className="w-full flex items-center justify-center space-x-2 bg-[#84CC16] text-gray-900 font-black py-4 rounded-2xl mt-4 hover:bg-white hover:scale-[1.02] transition-all duration-300 shadow-xl shadow-lime-900/20 text-sm uppercase tracking-[0.2em] active:scale-95 cursor-pointer">
                         <LogIn size={20}/>
                         <span>Authenticate</span>
                     </button>
