@@ -11,12 +11,12 @@ const FloatingInputField = ({ icon: Icon, name, type, label, value, onChange, re
             type={type}
             value={value} // CRITICAL: Ensure this is correctly passed
             onChange={onChange}
-            className="block w-full py-2.5 px-0 text-sm text-white bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-[#84CC16] peer transition-all duration-300"
+            className="block w-full py-2.5 px-0 text-sm text-white bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-[#84CC16] peer transition-all duration-300 font-bold"
             placeholder=" "
             required={required}
         />
         <label 
-            className={`absolute text-sm text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 peer-focus:text-[#84CC16]`}
+            className={`absolute text-sm text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 peer-focus:text-[#84CC16] font-bold`}
         >
             <div className="flex items-center space-x-2">
                 <Icon className="h-4 w-4" />
@@ -57,7 +57,11 @@ export default function Signup() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/register', formData);
+            // UPDATED: Logic to find the Render link in Vercel or use Localhost
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            
+            // Send registration request to the dynamic URL
+            const res = await axios.post(`${apiUrl}/api/auth/register`, formData);
             
             if (res.data) {
                 alert("Registration Successful! Please log in.");
@@ -70,7 +74,7 @@ export default function Signup() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden p-4 font-sans">
             
             {/* --- Dynamic Background --- */}
             <div className="absolute inset-0 z-0">
@@ -83,11 +87,11 @@ export default function Signup() {
                 className="relative bg-white/10 backdrop-blur-md border border-white/20 p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-xl transform transition-all duration-700 animate-fadeInUp z-10"
             >
                 <div className="text-center mb-10">
-                    <h1 className="text-4xl font-extrabold text-[#84CC16] drop-shadow-lg mb-1 flex items-center justify-center space-x-2">
-                        <Zap className="h-8 w-8"/>
+                    <h1 className="text-4xl font-extrabold text-[#84CC16] drop-shadow-lg mb-1 flex items-center justify-center space-x-2 italic uppercase">
+                        <Zap className="h-8 w-8 fill-current"/>
                         <span>EcoCycle Signup</span>
                     </h1>
-                    <p className="text-lg font-light text-gray-200 mt-2">Start your journey to sustainability.</p>
+                    <p className="text-sm font-bold text-gray-400 mt-2 uppercase tracking-widest">Start your journey to sustainability.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -99,11 +103,11 @@ export default function Signup() {
                             <span>1. Role & Access</span>
                         </h3>
                         <div className="flex flex-col">
-                            <label className="text-gray-400 text-sm block mb-1">I am registering as...</label>
+                            <label className="text-gray-400 text-sm block mb-1 font-bold">I am registering as...</label>
                             <select 
                                 name="role" 
                                 onChange={handleRoleChange} // Use dedicated handler
-                                className="w-full bg-white/10 text-white rounded-xl p-3 cursor-pointer focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] transition-all duration-300 border border-transparent hover:border-white/20"
+                                className="w-full bg-white/10 text-white rounded-xl p-3 cursor-pointer focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] transition-all duration-300 border border-transparent hover:border-white/20 font-bold"
                                 value={formData.role} 
                             >
                                 <option value="citizen" className="bg-gray-800">Citizen</option>
@@ -147,24 +151,22 @@ export default function Signup() {
                     <button 
                         type="submit"
                         className="w-full flex items-center justify-center space-x-2 bg-[#84CC16] text-gray-900 font-extrabold py-4 rounded-xl 
-                                   hover:bg-[#65a30d] transition-all duration-300 shadow-xl shadow-lime-900/40 text-lg uppercase tracking-wider 
+                                   hover:bg-white transition-all duration-300 shadow-xl shadow-lime-900/40 text-sm uppercase tracking-[0.2em] 
                                    transform hover:scale-[1.02] active:scale-95 ease-in-out">
                         <TrendingUp className="h-6 w-6"/>
                         <span>Create Account</span>
                     </button>
                 </form>
 
-                <div className="text-center mt-8 pt-4 border-t border-white/10">
-                    <p className="text-gray-400 text-sm">
-                        Already have an account? 
-                        <Link to="/login" className="text-blue-400 font-medium ml-2 hover:text-blue-300 transition-colors">
-                            Log in here
-                        </Link>
-                    </p>
+                <div className="text-center mt-8 pt-4 border-t border-white/10 text-sm font-bold text-gray-500 uppercase tracking-widest">
+                    Already have an account? 
+                    <Link to="/login" className="text-blue-400 font-medium ml-2 hover:text-[#84CC16] transition-colors underline decoration-blue-400">
+                        Log in here
+                    </Link>
                 </div>
             </div>
             
-            {/* CSS for custom animation (same as Login.jsx) */}
+            {/* CSS for custom animation */}
             <style jsx="true">{`
                 @keyframes fadeInUp {
                     from { opacity: 0; transform: translateY(30px); }
@@ -174,18 +176,10 @@ export default function Signup() {
                     animation: fadeInUp 1s ease-out;
                 }
                 @keyframes blob {
-                    0% {
-                        transform: translate(0px, 0px) scale(1);
-                    }
-                    33% {
-                        transform: translate(30px, -50px) scale(1.1);
-                    }
-                    66% {
-                        transform: translate(-20px, 20px) scale(0.9);
-                    }
-                    100% {
-                        transform: translate(0px, 0px) scale(1);
-                    }
+                    0% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0px, 0px) scale(1); }
                 }
                 .animate-blob {
                     animation: blob 10s infinite cubic-bezier(0.42, 0, 0.58, 1);
