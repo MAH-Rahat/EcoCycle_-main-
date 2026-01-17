@@ -59,10 +59,10 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#F1F5F9] flex overflow-hidden font-sans selection:bg-teal-100 selection:text-teal-900">
-            {/* --- SIDEBAR (Slate Earth) --- */}
+            {/* --- SIDEBAR --- */}
             <aside className="w-64 bg-[#0F172A] text-slate-400 flex flex-col shrink-0 border-r border-slate-800">
                 <div className="p-8">
-                    <div className="flex items-center gap-3 text-white mb-12">
+                    <div className="flex items-center gap-3 text-white mb-12 cursor-pointer" onClick={() => navigate('/admin-panel')}>
                         <div className="bg-teal-600 p-2.5 rounded-2xl shadow-lg shadow-teal-900/40">
                             <Mountain className="h-5 w-5" />
                         </div>
@@ -72,33 +72,28 @@ export default function AdminDashboard() {
                     <nav className="space-y-2">
                         <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.25em] mb-4 ml-2">Control Node</p>
                         
-                        <button className="w-full flex items-center gap-3 px-5 py-4 bg-teal-600 text-white rounded-2xl transition shadow-xl shadow-teal-950/20 active:scale-95">
+                        <button className="w-full flex items-center gap-3 px-5 py-4 bg-teal-600 text-white rounded-2xl transition shadow-xl shadow-teal-950/20 active:scale-95 cursor-pointer">
                             <LayoutDashboard size={18} /> <span className="text-sm font-bold">Dashboard</span>
                         </button>
 
                         <button onClick={() => navigate('/admin/analytics')} 
-                            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/5 hover:text-teal-400 rounded-2xl transition-all duration-300 group active:scale-95">
+                            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/5 hover:text-teal-400 rounded-2xl transition-all duration-300 group active:scale-95 cursor-pointer">
                             <BarChart3 size={18} /> 
                             <span className="text-sm font-bold">Intelligence</span>
                         </button>
 
                         <button onClick={() => navigate('/admin/users')} 
-                            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/5 hover:text-teal-400 rounded-2xl transition-all duration-300 group active:scale-95">
+                            className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/5 hover:text-teal-400 rounded-2xl transition-all duration-300 group active:scale-95 cursor-pointer">
                             <User size={18} /> 
                             <span className="text-sm font-bold">User Nodes</span>
                         </button>
                     </nav>
                 </div>
-
-                <div className="mt-auto p-6">
-                    <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 px-4 py-4 text-slate-400 bg-slate-800/50 hover:bg-rose-600 hover:text-white rounded-2xl transition-all duration-300 font-black text-xs uppercase tracking-widest active:scale-95 border border-slate-700">
-                        <LogOut size={16} /> Termination
-                    </button>
-                </div>
             </aside>
 
             {/* --- MAIN CONTENT --- */}
             <main className="flex-1 flex flex-col overflow-y-auto relative">
+                {/* HEADER: Added LOGOUT in upper section */}
                 <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-2xl border-b border-slate-200 px-10 py-6 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-10">
                         <div>
@@ -111,7 +106,7 @@ export default function AdminDashboard() {
                             <input 
                                 type="text" 
                                 placeholder="Search ecosystem data..." 
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-600 w-full ml-2 placeholder:text-slate-400"
+                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-600 w-full ml-2 placeholder:text-slate-400 outline-none"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -119,10 +114,19 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <button className="p-3 text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all rounded-2xl relative active:scale-90 border border-slate-100">
+                        {/* FEATURE ADDED: Logout button at top */}
+                        <button 
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 bg-rose-50 text-rose-600 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95 cursor-pointer border border-rose-100"
+                        >
+                            <LogOut size={16} /> Logout
+                        </button>
+
+                        <button className="p-3 text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-all rounded-2xl relative active:scale-90 border border-slate-100 cursor-pointer">
                             <Bell size={22} />
                             <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
                         </button>
+                        
                         <div className="h-12 w-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black shadow-sm active:scale-95 transition-transform cursor-pointer border-2 border-slate-800">
                             {adminName.charAt(0)}
                         </div>
@@ -146,7 +150,7 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-                        <h2 className="text-xl font-black text-slate-800 mb-8 tracking-tight flex items-center gap-3 ml-2">
+                        <h2 className="text-xl font-black text-slate-800 mb-8 tracking-tight flex items-center gap-3 ml-2 italic">
                             <Cpu size={20} className="text-teal-500" /> Operational Hub
                         </h2>
 
@@ -161,21 +165,19 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* --- COMPREHENSIVE SYSTEM FOOTER --- */}
+                {/* --- FOOTER --- */}
                 <footer className="w-full bg-white border-t border-slate-200 pt-12 pb-6 px-12 mt-auto">
                     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                        {/* Column 1: Info */}
                         <div className="col-span-1 space-y-4">
                             <div className="flex items-center gap-2 text-teal-600 font-black tracking-tighter uppercase text-sm">
                                 <ShieldCheck size={18} />
                                 <span>EcoCycle Admin System</span>
                             </div>
-                            <p className="text-slate-500 text-xs leading-relaxed font-medium">
-                                Professional environmental resource management and recycling logistics platform. Secure administrative access strictly enforced.
+                            <p className="text-slate-500 text-xs leading-relaxed font-medium italic">
+                                Professional environmental resource management platform.
                             </p>
                         </div>
 
-                        {/* Column 2: Quick Links */}
                         <div className="col-span-1 space-y-4">
                             <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                                 <LinkIcon size={12}/> Resource Navigation
@@ -183,28 +185,19 @@ export default function AdminDashboard() {
                             <ul className="text-slate-500 text-xs space-y-2 font-semibold">
                                 <li className="hover:text-teal-600 cursor-pointer transition-colors">Documentation</li>
                                 <li className="hover:text-teal-600 cursor-pointer transition-colors">System Policy</li>
-                                <li className="hover:text-teal-600 cursor-pointer transition-colors">Incident Reporting</li>
                             </ul>
                         </div>
 
-                        {/* Column 3: Status */}
                         <div className="col-span-1 space-y-4">
                             <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                                 <Activity size={12}/> System Metrics
                             </h4>
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                    Operational Stable
-                                </div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                                    <Shield size={12} className="text-slate-400"/>
-                                    SSL Encrypted (TLS 1.3)
-                                </div>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                Operational Stable
                             </div>
                         </div>
 
-                        {/* Column 4: Contact/Social */}
                         <div className="col-span-1 space-y-4">
                             <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                                 <Info size={12}/> Terminal Support
@@ -215,16 +208,13 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     </div>
-
                     <div className="max-w-7xl mx-auto pt-6 border-t border-slate-100 flex justify-between items-center">
-                        <p className="text-slate-300 text-[10px] font-bold tracking-widest uppercase">
+                        <p className="text-slate-300 text-[10px] font-bold tracking-widest uppercase italic">
                             © {new Date().getFullYear()} EcoCycle Infrastructure
                         </p>
-                        
-                        {/* --- SUBTLE MAHR SIGNATURE (Right aligned, low opacity) --- */}
                         <div className="opacity-20 hover:opacity-100 transition-opacity duration-500">
                             <p className="text-slate-400 text-[9px] font-black tracking-[0.2em] uppercase">
-                                Architected by <span className="text-slate-600">MAHR (QuantaCraft)</span>
+                                Architected by <span className="text-slate-600">MAHR</span>
                             </p>
                         </div>
                     </div>

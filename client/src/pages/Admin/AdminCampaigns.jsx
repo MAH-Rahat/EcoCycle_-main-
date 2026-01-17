@@ -7,6 +7,9 @@ import {
     CheckCircle2, LayoutDashboard, Package, Gift
 } from 'lucide-react';
 
+// --- DUAL MODE URL CONFIG ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function AdminCampaigns() {
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
@@ -26,7 +29,7 @@ export default function AdminCampaigns() {
 
     const fetchPosts = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/campaigns');
+            const res = await axios.get(`${API_BASE_URL}/api/campaigns`);
             setPosts(res.data);
         } catch (error) {
             console.error("Fetch Error:", error);
@@ -39,20 +42,25 @@ export default function AdminCampaigns() {
         e.preventDefault();
         setLoading(true);
         const adminInfo = JSON.parse(localStorage.getItem('userInfo'));
+        
+        // FEATURE: Fetch Admin Name and ID from localStorage
         const adminName = adminInfo?.name || "Administrator";
+        const adminId = adminInfo?._id || "Unknown ID";
 
         try {
             if (isEditing) {
-                await axios.put(`http://localhost:5000/api/campaigns/${isEditing}`, formData);
+                await axios.put(`${API_BASE_URL}/api/campaigns/${isEditing}`, formData);
             } else {
-                await axios.post('http://localhost:5000/api/campaigns', { 
+                await axios.post(`${API_BASE_URL}/api/campaigns`, { 
                     ...formData, 
                     postedBy: adminName,
+                    adminId: adminId, // FEATURE: Added Admin ID to the post
                     status: 'Active' 
                 });
             }
+            // FEATURE: Show success message
             setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 2000);
+            setTimeout(() => setShowSuccess(false), 3000);
             resetForm();
             fetchPosts();
         } catch (error) {
@@ -65,7 +73,7 @@ export default function AdminCampaigns() {
     const toggleArchive = async (post) => {
         try {
             const newStatus = post.status === 'Archived' ? 'Active' : 'Archived';
-            await axios.put(`http://localhost:5000/api/campaigns/${post._id}`, { status: newStatus });
+            await axios.put(`${API_BASE_URL}/api/campaigns/${post._id}`, { status: newStatus });
             setPosts(posts.map(p => p._id === post._id ? { ...p, status: newStatus } : p));
         } catch (error) {
             alert("Archive update failed.");
@@ -74,7 +82,7 @@ export default function AdminCampaigns() {
 
     const handleDelete = async () => {
         try {
-            await axios.delete(`http://localhost:5000/api/campaigns/${deleteId}`);
+            await axios.delete(`${API_BASE_URL}/api/campaigns/${deleteId}`);
             setPosts(posts.filter(p => p._id !== deleteId));
             setDeleteId(null);
         } catch (error) {
@@ -104,7 +112,7 @@ export default function AdminCampaigns() {
             <nav className="bg-slate-900 text-white px-8 py-4 shadow-lg sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-2 text-green-400 font-bold text-xl tracking-tighter italic">
+                        <div className="flex items-center gap-2 text-green-400 font-bold text-xl tracking-tighter italic cursor-default">
                             EcoCycle Admin
                         </div>
                         <div className="flex gap-6">
@@ -117,7 +125,7 @@ export default function AdminCampaigns() {
                             <button onClick={() => navigate('/admin-rewards')} className="flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer">
                                 <Gift size={16} /> Rewards
                             </button>
-                            <button onClick={() => navigate('/admin-campaigns')} className="flex items-center gap-2 text-sm font-bold text-white border-b-2 border-green-500 pb-1">
+                            <button onClick={() => navigate('/admin-campaigns')} className="flex items-center gap-2 text-sm font-bold text-white border-b-2 border-green-500 pb-1 cursor-pointer">
                                 <Megaphone size={16} /> Campaigns
                             </button>
                         </div>
@@ -173,6 +181,14 @@ export default function AdminCampaigns() {
                                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">Content Details</label>
                                     <textarea required rows="6" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded font-normal text-base leading-relaxed" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})}></textarea>
                                 </div>
+
+                                {/* FEATURE: Success Message UI */}
+                                {showSuccess && (
+                                    <div className="flex items-center gap-2 text-green-600 font-bold text-sm animate-bounce">
+                                        <CheckCircle2 size={18} /> Campaign Processed Successfully!
+                                    </div>
+                                )}
+
                                 <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded hover:bg-black transition-all uppercase text-xs tracking-widest cursor-pointer shadow-lg">
                                     {loading ? "Processing..." : isEditing ? "Save Changes" : "Publish to Citizens"}
                                 </button>
@@ -187,12 +203,12 @@ export default function AdminCampaigns() {
                             <Search size={20} className="text-gray-400" />
                             <input type="text" placeholder="Search archives..." className="flex-1 outline-none text-lg font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
-                        <div className="bg-white border border-gray-200 overflow-hidden rounded-lg shadow-sm">
-                            <table className="w-full text-left">
+                        <div className="bg-white border border-gray-200 overflow-hidden rounded-lg shadow-sm overflow-x-auto">
+                            <table className="w-full text-left min-w-[800px]">
                                 <thead className="bg-gray-100 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                     <tr>
                                         <th className="px-6 py-4">Title / Headline</th>
-                                        <th className="px-6 py-4">Author</th>
+                                        <th className="px-6 py-4">Admin (Name & ID)</th> {/* FEATURE: Updated Header */}
                                         <th className="px-6 py-4">Status</th>
                                         <th className="px-6 py-4 text-right">Control</th>
                                     </tr>
@@ -201,12 +217,28 @@ export default function AdminCampaigns() {
                                     {filteredPosts.map(post => (
                                         <tr key={post._id} className={`border-b border-gray-100 hover:bg-gray-50/50 ${post.status === 'Archived' ? 'bg-gray-50 opacity-60' : ''}`}>
                                             <td className="px-6 py-5 font-bold text-gray-800">{post.title}</td>
-                                            <td className="px-6 py-5 font-semibold text-gray-600">{post.postedBy || "Admin"}</td>
-                                            <td className="px-6 py-5"><span className={`px-2 py-1 rounded text-[10px] uppercase font-black tracking-tighter ${post.status === 'Archived' ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}>{post.status || 'Active'}</span></td>
+                                            {/* FEATURE: Admin ID and Name display */}
+                                            <td className="px-6 py-5">
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold text-gray-600 text-sm">{post.postedBy || "Admin"}</span>
+                                                    <span className="text-[10px] text-gray-400 font-mono italic">ID: {post.adminId || "N/A"}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <span className={`px-2 py-1 rounded text-[10px] uppercase font-black tracking-tighter ${post.status === 'Archived' ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}>
+                                                    {post.status || 'Active'}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-5 text-right flex justify-end gap-5">
-                                                <button onClick={() => toggleArchive(post)} className="cursor-pointer text-gray-400 hover:text-gray-900">{post.status === 'Archived' ? <Eye size={18}/> : <EyeOff size={18}/>}</button>
-                                                <button onClick={() => handleEdit(post)} className="cursor-pointer text-gray-400 hover:text-gray-900"><Edit3 size={18}/></button>
-                                                <button onClick={() => setDeleteId(post._id)} className="text-red-400 hover:text-red-600 cursor-pointer"><Trash2 size={18}/></button>
+                                                <button onClick={() => toggleArchive(post)} className="cursor-pointer text-gray-400 hover:text-gray-900">
+                                                    {post.status === 'Archived' ? <Eye size={18}/> : <EyeOff size={18}/>}
+                                                </button>
+                                                <button onClick={() => handleEdit(post)} className="cursor-pointer text-gray-400 hover:text-gray-900">
+                                                    <Edit3 size={18}/>
+                                                </button>
+                                                <button onClick={() => setDeleteId(post._id)} className="text-red-400 hover:text-red-600 cursor-pointer">
+                                                    <Trash2 size={18}/>
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

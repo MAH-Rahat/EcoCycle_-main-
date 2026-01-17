@@ -5,9 +5,12 @@ import {
     Users, ShieldCheck, Truck, Clock, Zap, Eye, X, History, 
     ShieldAlert, Calendar, Phone, Fingerprint, MapPin, Coins,
     UserCheck, CreditCard, Activity, Edit3, ShieldOff, Gift, AlertTriangle,
-    PlusCircle, Send
+    PlusCircle, Send, ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+// --- DUAL MODE URL CONFIG ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function UserManager() {
     const [users, setUsers] = useState([]);
@@ -19,16 +22,13 @@ export default function UserManager() {
     const [logLoading, setLogLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // Custom Modal State
     const [showDeleteModal, setShowDeleteModal] = useState({ show: false, userId: null, userName: '' });
-
     const navigate = useNavigate();
 
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const res = await axios.get(`${apiUrl}/api/users/all`);
+            const res = await axios.get(`${API_BASE_URL}/api/users/all`);
             setUsers(Array.isArray(res.data) ? res.data : []);
             setError(null);
         } catch (err) {
@@ -42,8 +42,7 @@ export default function UserManager() {
         setSelectedUser(user);
         setLogLoading(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const res = await axios.get(`${apiUrl}/api/users/activity/${user._id}`);
+            const res = await axios.get(`${API_BASE_URL}/api/users/activity/${user._id}`);
             setUserLogs(res.data);
         } catch (err) {
             setUserLogs([]);
@@ -57,8 +56,7 @@ export default function UserManager() {
     const confirmDelete = async () => {
         const { userId } = showDeleteModal;
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            await axios.delete(`${apiUrl}/api/users/${userId}`);
+            await axios.delete(`${API_BASE_URL}/api/users/${userId}`);
             setUsers(users.filter(u => u._id !== userId));
             setShowDeleteModal({ show: false, userId: null, userName: '' });
         } catch (err) {
@@ -84,128 +82,95 @@ export default function UserManager() {
     };
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen font-sans relative">
+        <div className="p-4 md:p-6 bg-slate-50 min-h-screen font-sans relative">
             
-            {/* --- 1. CUSTOM DELETE MODAL --- */}
+            
+            {/* --- DELETE MODAL --- */}
             {showDeleteModal.show && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-indigo-900/20 backdrop-blur-md animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border border-rose-100 text-center scale-up-center">
-                        <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <AlertTriangle size={40} />
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-800 mb-2">Are you sure?</h3>
-                        <p className="text-slate-500 mb-8 leading-relaxed italic">
-                            Terminating <span className="font-bold text-rose-600 underline">{showDeleteModal.userName}'s</span> account is a permanent action.
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center border border-slate-100">
+                        <AlertTriangle className="text-rose-500 mx-auto mb-4" size={32} />
+                        <h3 className="text-xl font-bold text-slate-800 mb-1">Confirm Deletion</h3>
+                        <p className="text-sm text-slate-500 mb-6 italic">
+                            Terminating <span className="font-bold text-rose-600 underline">{showDeleteModal.userName}</span>
                         </p>
-                        <div className="flex flex-col gap-3">
-                            <button onClick={confirmDelete} className="w-full py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-rose-600 active:scale-95 transition-all shadow-lg shadow-rose-200">Confirm Deletion</button>
-                            <button onClick={() => setShowDeleteModal({ show: false, userId: null, userName: '' })} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 active:scale-95 transition-all">Cancel Action</button>
+                        <div className="flex gap-3">
+                            <button onClick={confirmDelete} className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold text-xs cursor-pointer active:scale-95">Delete</button>
+                            <button onClick={() => setShowDeleteModal({ show: false, userId: null, userName: '' })} className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold text-xs cursor-pointer active:scale-95">Cancel</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- 2. DRAWER --- */}
+            {/* --- DRAWER --- */}
             {selectedUser && (
-                <div className="fixed inset-0 z-[100] flex justify-end bg-indigo-900/10 backdrop-blur-sm transition-opacity duration-300">
-                    <div className="h-full w-full max-w-md bg-white shadow-2xl p-8 overflow-y-auto transform transition-all animate-in slide-in-from-right duration-300">
-                        <div className="flex justify-between items-center mb-8">
-                            <div className="flex items-center gap-2">
-                                <ShieldCheck className="text-indigo-600" size={24} />
-                                <h2 className="text-2xl font-black text-slate-800 tracking-tighter">Admin Control</h2>
-                            </div>
-                            <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-indigo-50 rounded-full active:scale-75 transition-all">
-                                <X size={28} className="text-indigo-400" />
-                            </button>
+                <div className="fixed inset-0 z-[100] flex justify-end bg-slate-900/20 backdrop-blur-sm">
+                    <div className="h-full w-full max-w-sm bg-white shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-black text-slate-800 italic uppercase">User Protocol</h2>
+                            <button onClick={() => setSelectedUser(null)} className="p-1 hover:bg-slate-100 rounded-full cursor-pointer active:scale-75 transition-all"><X size={24} /></button>
                         </div>
 
-                        {/* Profile Identity Card */}
-                        <div className="text-center mb-8">
-                            <div className="h-24 w-24 bg-gradient-to-tr from-indigo-500 to-violet-500 rounded-[2rem] mx-auto mb-4 flex items-center justify-center text-white text-4xl font-black shadow-xl ring-8 ring-indigo-50">
+                        <div className="text-center mb-6">
+                            <div className={`h-16 w-16 rounded-2xl mx-auto mb-3 flex items-center justify-center text-white text-2xl font-black shadow-lg ${selectedUser.role === 'admin' ? "bg-rose-500" : "bg-indigo-500"}`}>
                                 {selectedUser.name.charAt(0)}
                             </div>
-                            <h3 className="text-2xl font-black text-slate-800 leading-tight">{selectedUser.name}</h3>
-                            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">{selectedUser.role}</p>
-                            
-                            <div className="flex justify-center gap-3 mt-6">
-                                <button className="flex-1 py-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all active:scale-90 font-black text-[10px] uppercase flex items-center justify-center gap-2 border border-amber-100"><Gift size={14}/> Reward</button>
-                                <button className="flex-1 py-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-all active:scale-90 font-black text-[10px] uppercase flex items-center justify-center gap-2 border border-rose-100"><ShieldOff size={14}/> Suspend</button>
-                            </div>
+                            <h3 className="text-lg font-black text-slate-800">{selectedUser.name}</h3>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{selectedUser.role}</p>
                         </div>
 
-                        {/* Information Section */}
-                        <div className="space-y-3 mb-8">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 underline underline-offset-4 decoration-indigo-200">
-                                <Fingerprint size={14} /> Account Meta Data
-                            </h4>
-                            <div className="grid grid-cols-1 gap-3">
-                                {[
-                                    { label: "Direct Email", val: selectedUser.email, icon: Mail },
-                                    { label: "Phone Line", val: selectedUser.mobile || "N/A", icon: Phone },
-                                    { label: "Unique Username", val: selectedUser.username, icon: Users },
-                                    { label: "Wallet Balance", val: `${selectedUser.points} EcoCoins`, icon: Coins },
-                                ].map((item, i) => (
-                                    <div key={i} className="flex items-center gap-4 p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/50">
-                                        <div className="p-2 bg-white rounded-xl shadow-sm text-indigo-500"><item.icon size={16} /></div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">{item.label}</p>
-                                            <p className="text-sm font-bold text-slate-700">{item.val}</p>
-                                        </div>
+                        <div className="space-y-2 mb-6">
+                            {[
+                                { label: "Email Address", val: selectedUser.email, icon: Mail },
+                                { label: "Mobile Signal", val: selectedUser.mobile || "N/A", icon: Phone },
+                                { label: "Credit", val: `${selectedUser.points} Pts`, icon: Coins },
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <item.icon size={14} className="text-slate-400" />
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase leading-none mb-1">{item.label}</p>
+                                        <p className="text-xs font-bold text-slate-700">{item.val}</p>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ))}
                         </div>
 
-                        {/* Audit Logs */}
-                        <div className="space-y-4">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14} /> Activity Stream</h4>
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Activity</h4>
                             {logLoading ? (
-                                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-indigo-500"/></div>
+                                <Loader2 className="animate-spin text-indigo-500 mx-auto"/>
                             ) : userLogs.length > 0 ? (
-                                userLogs.map(log => (
-                                    <div key={log._id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-200 group-hover:bg-indigo-500 transition-colors"></div>
-                                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{log.action}</p>
-                                        <p className="text-xs text-slate-500 mt-1">{log.details}</p>
-                                        <p className="text-[9px] text-slate-400 mt-2 font-bold">{new Date(log.createdAt).toLocaleString()}</p>
+                                userLogs.slice(0, 5).map(log => (
+                                    <div key={log._id} className="p-3 bg-white border border-slate-100 rounded-xl">
+                                        <p className="text-[10px] font-black text-slate-800 uppercase">{log.action}</p>
+                                        <p className="text-[10px] text-slate-500 mt-1">{log.details}</p>
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-10 border-2 border-dashed border-slate-100 rounded-3xl text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.2em]">End of Records</div>
+                                <p className="text-center text-[10px] text-slate-300 uppercase font-black py-4">No Data</p>
                             )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- 3. HEADER AREA --- */}
-            <div className="max-w-7xl mx-auto mb-10">
-                <button 
-                    onClick={() => navigate('/admin-panel')} 
-                    className="group flex items-center gap-3 text-slate-400 hover:text-indigo-600 font-black mb-8 transition-all active:scale-95"
-                >
-                    <div className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-500 transition-all duration-300">
-                        <ArrowLeft size={18}/> 
-                    </div>
-                    <span className="tracking-widest text-[10px]">BACK TO DASHBOARD</span>
+            {/* --- HEADER --- */}
+            <div className="max-w-5xl mx-auto mb-6">
+                {/* BACK BUTTON FIXED HERE */}
+                <button onClick={() => navigate('/admin-panel')} className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-black text-[9px] uppercase tracking-widest mb-4 transition-all cursor-pointer group active:scale-95">
+                    <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Dashboard Hub
                 </button>
                 
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                    <div>
-                        <h1 className="text-5xl font-black text-slate-900 tracking-tighter flex items-center gap-5">
-                            <div className="p-4 bg-indigo-600 rounded-[1.8rem] shadow-2xl shadow-indigo-200 rotate-3 group hover:rotate-0 transition-transform">
-                                <Users className="text-white" size={38}/>
-                            </div>
-                            Control Center
-                        </h1>
-                        <p className="text-slate-400 mt-5 font-bold uppercase text-[10px] tracking-[0.3em] ml-2">Administrative User Oversight & Integrity</p>
-                    </div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter italic uppercase flex items-center gap-3">
+                        <Users className="text-indigo-600" size={24}/> User Nodes
+                    </h1>
 
-                    <div className="flex bg-white p-2 rounded-[1.8rem] border border-slate-200 shadow-xl shadow-indigo-100/20">
+                    <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
                         {['all', 'citizen', 'collector', 'admin'].map((role) => (
                             <button 
                                 key={role} onClick={() => setActiveRole(role)}
-                                className={`px-7 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all active:scale-90 ${activeRole === role ? "bg-indigo-600 text-white shadow-xl shadow-indigo-200" : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"}`}
+                                className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer whitespace-nowrap active:scale-95 ${activeRole === role ? "bg-slate-900 text-white" : "text-slate-400 hover:bg-slate-50"}`}
                             >
                                 {role}s
                             </button>
@@ -214,91 +179,63 @@ export default function UserManager() {
                 </div>
             </div>
 
-            {/* ACTION BAR */}
-            <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-5 mb-10">
-                <div className="relative flex-1 group">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors" size={20}/>
+            {/* SEARCH */}
+            <div className="max-w-5xl mx-auto flex gap-3 mb-6">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16}/>
                     <input 
                         type="text"
-                        placeholder="Search Identity or Database ID..."
+                        placeholder="Filter by name or email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-16 pr-6 py-5 bg-white border border-slate-200 rounded-[2.2rem] focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-400 transition-all outline-none shadow-sm text-slate-700 font-bold placeholder:text-slate-300"
+                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-indigo-400 transition-all outline-none text-xs font-bold"
                     />
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={fetchUsers} className="p-5 bg-white border border-slate-200 text-slate-400 rounded-3xl hover:bg-indigo-50 hover:text-indigo-500 transition-all active:scale-90 shadow-sm">
-                        <RefreshCw size={24} className={loading ? "animate-spin" : ""} />
-                    </button>
-                    <button className="flex items-center gap-3 px-8 bg-indigo-600 text-white rounded-3xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 hover:shadow-xl shadow-indigo-200 transition-all active:scale-95">
-                        <PlusCircle size={20}/> Offer Everyone
-                    </button>
-                </div>
+                <button onClick={fetchUsers} className="p-3 bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-indigo-500 cursor-pointer transition-all active:scale-90">
+                    <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                </button>
             </div>
 
-            {/* --- 4. DATA TABLE --- */}
-            <div className="max-w-7xl mx-auto bg-white rounded-[3.5rem] shadow-2xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-900/95 text-slate-400 uppercase text-[9px] font-black tracking-[0.3em]">
-                                <th className="p-9">Identification</th>
-                                <th className="p-9 text-center">Actions Count</th>
-                                <th className="p-9">Joining Date</th>
-                                <th className="p-9">Status</th>
-                                <th className="p-9 text-right">Master Control</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filteredUsers.map(u => (
-                                <tr key={u._id} className="group hover:bg-indigo-50/40 transition-all duration-300">
-                                    <td className="p-7">
-                                        <div className="flex items-center gap-6">
-                                            <div className={`h-16 w-16 rounded-[1.6rem] flex items-center justify-center text-white font-black text-2xl shadow-lg group-hover:scale-105 transition-transform ${u.role === 'admin' ? "bg-rose-500" : u.role === 'collector' ? "bg-blue-500" : "bg-emerald-500"}`}>
-                                                {u.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{u.name}</p>
-                                                <p className="text-[11px] text-slate-400 font-bold flex items-center gap-1.5 mt-1.5"><Mail size={12} className="text-slate-300"/> {u.email}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-7 text-center">
-                                        <div className="inline-flex flex-col items-center p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 group-hover:bg-white group-hover:border-indigo-100 transition-all">
-                                            <span className="text-xl font-black text-indigo-600 flex items-center gap-1.5">
-                                                <Zap size={18} className="fill-indigo-600"/> {u.activityCount || 0}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="p-7">
-                                        <div className="flex items-center gap-2 text-slate-500 font-black text-xs uppercase">
-                                            <Calendar size={15} className="text-indigo-200" />
-                                            {new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                                        </div>
-                                    </td>
-                                    <td className="p-7">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`h-2.5 w-2.5 rounded-full ${u.lastLogin ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-100/50' : 'bg-slate-200'}`}></div>
-                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{formatLastSeen(u.lastLogin)}</p>
-                                        </div>
-                                    </td>
-                                    <td className="p-7 text-right">
-                                        <div className="flex justify-end gap-3">
-                                            <button onClick={() => fetchActivity(u)} className="p-4 bg-indigo-50 text-indigo-400 rounded-[1.2rem] hover:bg-indigo-600 hover:text-white transition-all active:scale-75 shadow-sm border border-indigo-100/50" title="Full Activity"><Eye size={20}/></button>
-                                            <button onClick={() => fetchActivity(u)} className="p-4 bg-amber-50 text-amber-400 rounded-[1.2rem] hover:bg-amber-500 hover:text-white transition-all active:scale-75 shadow-sm border border-amber-100/50" title="Quick Actions"><ShieldCheck size={20}/></button>
-                                            <button onClick={() => setShowDeleteModal({ show: true, userId: u._id, userName: u.name })} className="p-4 bg-rose-50 text-rose-400 rounded-[1.2rem] hover:bg-rose-500 hover:text-white transition-all active:scale-75 shadow-sm border border-rose-100/50" title="Delete Account"><Trash2 size={20}/></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+            {/* --- LIST VIEW --- */}
+            <div className="max-w-5xl mx-auto space-y-3">
+                {loading ? (
+                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-300" size={32}/></div>
+                ) : filteredUsers.length > 0 ? (
+                    filteredUsers.map(u => (
+                        <div key={u._id} className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4 hover:border-indigo-200 transition-all group">
+                            
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                                <div className={`h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center text-white font-black text-sm md:text-lg shadow-md ${u.role === 'admin' ? "bg-rose-500" : u.role === 'collector' ? "bg-blue-500" : "bg-emerald-500"}`}>
+                                    {u.name.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-black text-slate-800 text-sm truncate uppercase tracking-tight">{u.name}</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5 truncate mt-0.5"><Mail size={10}/> {u.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="hidden sm:flex flex-col items-end px-4">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    <div className={`h-1.5 w-1.5 rounded-full ${u.lastLogin ? 'bg-emerald-500 shadow-sm animate-pulse' : 'bg-slate-200'}`}></div>
+                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{formatLastSeen(u.lastLogin)}</span>
+                                </div>
+                                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-tighter">{u.activityCount || 0} Actions</p>
+                            </div>
+
+                            <div className="flex gap-1.5">
+                                <button onClick={() => fetchActivity(u)} className="p-2.5 bg-slate-50 text-slate-400 rounded-lg hover:bg-indigo-600 hover:text-white transition-all cursor-pointer active:scale-90"><Eye size={16}/></button>
+                                <button onClick={() => setShowDeleteModal({ show: true, userId: u._id, userName: u.name })} className="p-2.5 bg-slate-50 text-slate-400 rounded-lg hover:bg-rose-600 hover:text-white transition-all cursor-pointer active:scale-90"><Trash2 size={16}/></button>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <p className="text-center text-[10px] text-slate-300 font-black uppercase py-20 italic">No Matching Nodes Found</p>
+                )}
             </div>
 
-            <style>{`
-                .scale-up-center { animation: scale-up-center 0.2s cubic-bezier(0.390, 0.575, 0.565, 1.000) both; }
-                @keyframes scale-up-center { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+            <style jsx="true">{`
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     );
