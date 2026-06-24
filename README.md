@@ -1,7 +1,6 @@
+<img width="1904" height="957" alt="Screenshot 2026-06-24 172639" src="https://github.com/user-attachments/assets/f49406a3-462d-4397-b860-208add04fc8f" />
 <img width="1919" height="958" alt="Screenshot 2026-06-24 172745" src="https://github.com/user-attachments/assets/5a0acc8b-99b4-4d4b-a0c1-731b3426045d" />
 <img width="1919" height="955" alt="Screenshot 2026-06-24 172738" src="https://github.com/user-attachments/assets/88ed2a8c-c69d-404d-b1e0-c634ca7147ab" />
-<img width="1904" height="957" alt="Screenshot 2026-06-24 172639" src="https://github.com/user-attachments/assets/f49406a3-462d-4397-b860-208add04fc8f" />
-
 
 # 🌍 EcoCycle - Full-Stack Recycling Management Platform (MERN)
 
