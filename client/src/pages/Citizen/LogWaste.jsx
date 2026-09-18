@@ -6,7 +6,7 @@ import {
     Zap, GlassWater, Recycle, ArrowLeft, MapPin, Info, 
     CheckCircle2, PartyPopper, Trophy, ArrowRight, Leaf,
     Menu, X, ChevronDown, LogOut, Globe, Activity, Bell, Search, UserCircle,
-    Github, Mail, AlertCircle, Map, Navigation
+    Github, Mail, AlertCircle, Map, Navigation, ShieldCheck, Sparkles
 } from 'lucide-react'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -30,6 +30,7 @@ export default function LogWaste() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [userStats, setUserStats] = useState({ points: 0 });
+    const [pageLoading, setPageLoading] = useState(true);
     const [formData, setFormData] = useState({
         material: null, 
         estimatedWeight: '', 
@@ -65,9 +66,11 @@ export default function LogWaste() {
     useEffect(() => {
         const userInfoString = localStorage.getItem('userInfo');
         if (userInfoString) {
-            const loggedUser = JSON.parse(userInfoString);
-            setUser(loggedUser);
-            fetchUserStats(loggedUser._id);
+            try {
+                const loggedUser = JSON.parse(userInfoString);
+                setUser(loggedUser);
+                if (loggedUser?._id) fetchUserStats(loggedUser._id);
+            } catch (e) { localStorage.removeItem('userInfo'); }
         } else { 
             navigate('/login'); 
         }
@@ -90,6 +93,8 @@ export default function LogWaste() {
             setUserStats(res.data);
         } catch (error) { 
             console.error("Stats fail"); 
+        } finally {
+            setPageLoading(false);
         }
     };
 
@@ -99,14 +104,28 @@ export default function LogWaste() {
         setTimeout(() => navigate(path), 400);
     };
 
+    const handleScrollToAbout = () => {
+        setIsExiting(true);
+        setTimeout(() => {
+            navigate('/home');
+            setTimeout(() => {
+                const aboutSection = document.getElementById('about-section');
+                if (aboutSection) {
+                    aboutSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 300);
+        }, 400);
+    };
+
     const handleLogout = () => {
+        setIsExiting(true);
         setTimeout(() => {
             localStorage.removeItem('userInfo');
             localStorage.removeItem('token');
             setUser(null);
             navigate('/');
             setIsMobileMenuOpen(false);
-        }, 800);
+        }, 400);
     };
 
     const handleChange = (e) => {
@@ -196,10 +215,26 @@ export default function LogWaste() {
         setErrorMsg(null);
     };
 
+    if (pageLoading) {
+        return (
+            <div className="min-h-screen bg-[#F4F9F5] flex flex-col justify-between font-sans animate-pulse">
+                <div className="h-24 bg-[#051F20]/80 border-b border-white/10 w-full"></div>
+                <div className="max-w-6xl mx-auto w-full px-6 py-24 space-y-8">
+                    <div className="h-10 bg-gray-200 rounded-xl w-1/3"></div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="h-96 bg-gray-200 rounded-2xl"></div>
+                        <div className="h-96 bg-gray-200 rounded-2xl"></div>
+                    </div>
+                </div>
+                <div className="h-24 bg-[#051F20] w-full"></div>
+            </div>
+        );
+    }
+
     return (
         <div className={`min-h-screen font-sans flex flex-col overflow-x-hidden bg-[#F4F9F5] text-[#051F20] transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
             
-            {/* --- DEEP ECO NAVBAR --- */}
+            {/* --- PROFESSIONAL NAVBAR --- */}
             <header className="fixed top-0 left-0 right-0 z-[100] bg-[#051F20] border-b border-white/10 shadow-md">
                 <div className="max-w-7xl mx-auto px-6 lg:px-10 h-24 flex justify-between items-center">
                     <div className="flex items-center gap-10">
@@ -210,9 +245,9 @@ export default function LogWaste() {
 
                         <nav className="hidden lg:flex items-center gap-8">
                             <button onClick={() => handleNavigate('/home')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] active:scale-95 transition-all duration-300 cursor-pointer">Home</button>
-                            <button onClick={() => handleNavigate('/log-waste')} className="text-sm font-semibold text-white hover:text-[#22c55e] active:scale-95 transition-all duration-300 cursor-pointer">Log Waste</button>
+                            <button onClick={() => handleNavigate('/log-waste')} className="text-sm font-semibold text-white transition-all duration-300 cursor-pointer">Log Waste</button>
                             <button onClick={() => user ? handleNavigate('/my-activity') : handleNavigate('/login')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] active:scale-95 transition-all duration-300 cursor-pointer">Pickup Request</button>
-                            <button onClick={() => handleNavigate('/projects')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] active:scale-95 transition-all duration-300 cursor-pointer">Initiatives</button>
+                            <button onClick={handleScrollToAbout} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] active:scale-95 transition-all duration-300 cursor-pointer">About</button>
                         </nav>
                     </div>
 
@@ -242,15 +277,62 @@ export default function LogWaste() {
                             </button>
                         )}
                         
-                        <button className="lg:hidden text-white hover:text-[#22c55e] active:scale-90 transition-all duration-300 cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                        {/* Smart Hamburger Button */}
+                        <button className="lg:hidden text-white bg-white/5 p-2.5 rounded-xl border border-white/10 hover:border-[#22c55e] active:scale-90 transition-all duration-300 cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                            {isMobileMenuOpen ? <X size={24} className="text-[#22c55e]" /> : <Menu size={24} />}
                         </button>
+                    </div>
+                </div>
+
+                {/* --- SMART REDESIGNED MOBILE MENU OVERLAY --- */}
+                <div className={`lg:hidden fixed inset-0 z-[150] bg-[#051F20]/95 backdrop-blur-xl pt-28 px-6 flex flex-col justify-between pb-12 transition-all duration-500 ease-in-out ${isMobileMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
+                    <div className="space-y-6 animate-fadeInUp">
+                        {user && (
+                            <div className="flex items-center gap-4 p-4 bg-[#0B2B26] border border-white/10 rounded-2xl shadow-lg">
+                                <div className="h-12 w-12 bg-[#22c55e] rounded-full flex items-center justify-center text-[#051F20] font-bold text-lg shadow-inner">{user.name.charAt(0).toUpperCase()}</div>
+                                <div className="overflow-hidden">
+                                    <p className="text-base font-bold text-white truncate">{user.name}</p>
+                                    <p className="text-xs text-[#22c55e] font-medium">{userStats.points} Impact Points</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col space-y-2 pt-2">
+                            <button onClick={() => { handleNavigate('/home'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-white font-semibold text-base hover:bg-white/5 active:bg-white/10 transition-all cursor-pointer group">
+                                <span>Home</span>
+                                <ArrowRight size={16} className="text-[#8EB69B] group-hover:translate-x-1 group-hover:text-[#22c55e] transition-all" />
+                            </button>
+                            <button onClick={() => { handleNavigate('/log-waste'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-[#22c55e] bg-white/5 font-semibold text-base border border-white/10 transition-all cursor-pointer">
+                                <span>Log Waste</span>
+                                <Recycle size={18} className="text-[#22c55e]" />
+                            </button>
+                            <button onClick={() => { user ? handleNavigate('/my-activity') : handleNavigate('/login'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-white font-semibold text-base hover:bg-white/5 active:bg-white/10 transition-all cursor-pointer group">
+                                <span>Pickup Request</span>
+                                <ArrowRight size={16} className="text-[#8EB69B] group-hover:translate-x-1 group-hover:text-[#22c55e] transition-all" />
+                            </button>
+                            <button onClick={() => { handleScrollToAbout(); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-white font-semibold text-base hover:bg-white/5 active:bg-white/10 transition-all cursor-pointer group">
+                                <span>About Us</span>
+                                <ArrowRight size={16} className="text-[#8EB69B] group-hover:translate-x-1 group-hover:text-[#22c55e] transition-all" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/10">
+                        {user ? (
+                            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 py-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold active:scale-95 transition-all cursor-pointer">
+                                <LogOut size={18} /> Sign Out
+                            </button>
+                        ) : (
+                            <button onClick={() => { handleNavigate('/login'); setIsMobileMenuOpen(false); }} className="w-full py-4 bg-[#22c55e] text-[#051F20] rounded-xl text-sm font-bold shadow-lg active:scale-95 transition-all cursor-pointer">
+                                Log In
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>
 
             {/* --- MAIN CONTENT --- */}
-            <main className="flex-grow pt-40 pb-24 px-4 md:px-8 max-w-6xl mx-auto w-full relative z-10">
+            <main className="flex-grow pt-40 pb-24 px-4 md:px-8 max-w-6xl mx-auto w-full relative z-10 animate-fadeInUp">
                 
                 {showSuccess ? (
                     <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(5,31,32,0.03)] border border-gray-100 p-12 text-center animate-scaleIn max-w-2xl mx-auto mt-10">
@@ -274,7 +356,7 @@ export default function LogWaste() {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(5,31,32,0.03)] w-full border border-gray-100 overflow-hidden flex flex-col lg:flex-row">
+                    <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(5,31,32,0.03)] w-full border border-gray-100 overflow-hidden flex flex-col lg:flex-row animate-scaleIn">
                         
                         {/* LEFT COLUMN: Material Selection */}
                         <div className="lg:w-5/12 p-8 md:p-12 bg-[#F4F9F5] border-b lg:border-b-0 lg:border-r border-gray-100">
@@ -491,6 +573,25 @@ export default function LogWaste() {
                     </div>
                 </div>
             </footer>
+
+            {/* --- CUSTOM ANIMATIONS STYLESHEET --- */}
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes fadeInUp { 
+                    from { opacity: 0; transform: translateY(20px); } 
+                    to { opacity: 1; transform: translateY(0); } 
+                }
+                @keyframes scaleIn { 
+                    from { opacity: 0; transform: scale(0.97); } 
+                    to { opacity: 1; transform: scale(1); } 
+                }
+                @keyframes float {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-8px); }
+                }
+                .animate-fadeInUp { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-scaleIn { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-float { animation: float 3s ease-in-out infinite; }
+            `}} />
         </div>
     );
 }

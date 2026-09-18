@@ -169,8 +169,8 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-b from-[#051F20]/95 via-[#051F20]/60 to-[#051F20]"></div>
                 
                 {/* Navbar */}
-                <header className="absolute top-0 left-0 right-0 z-[100] border-b border-white/10 bg-[#051F20]/30 backdrop-blur-md animate-fadeInDown">
-                    <div className="max-w-7xl mx-auto px-6 lg:px-10 h-24 flex justify-between items-center">
+                <header className={`absolute top-0 left-0 right-0 z-[100] border-b border-white/10 animate-fadeInDown transition-colors duration-300 ${isMobileMenuOpen ? 'bg-[#051F20]' : 'bg-[#051F20]/30 backdrop-blur-md'}`}>
+                    <div className="max-w-7xl mx-auto px-6 lg:px-10 h-24 flex justify-between items-center relative">
                         <div className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform" onClick={() => navigate('/')}>
                             <Leaf className="text-[#22c55e] h-8 w-8 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
                             <span className="text-2xl font-bold tracking-wide text-white">EcoCycle</span>
@@ -216,11 +216,27 @@ export default function Home() {
                                 </button>
                             )}
                             
-                            <button className="lg:hidden text-white hover:text-[#22c55e] active:scale-90 transition-all duration-300 cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                                {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                            {/* Smart Hamburger Button */}
+                            <button className="lg:hidden text-white bg-white/5 p-2.5 rounded-xl border border-white/10 hover:border-[#22c55e] active:scale-90 transition-all duration-300 cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                                {isMobileMenuOpen ? <X size={24} className="text-[#22c55e]" /> : <Menu size={24} />}
                             </button>
                         </div>
                     </div>
+
+                    {/* --- SMALL SOLID BACKGROUND MOBILE MENU --- */}
+                    {isMobileMenuOpen && (
+                        <div className="lg:hidden absolute top-full left-0 right-0 bg-[#051F20] border-y border-white/10 px-4 py-4 flex flex-col gap-1 shadow-2xl z-[200] animate-fadeInDown">
+                            <button onClick={() => { navigate('/home'); setIsMobileMenuOpen(false); }} className="text-left text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] hover:bg-[#22c55e]/10 p-3 rounded-xl transition-all cursor-pointer">Home</button>
+                            <button onClick={() => { navigate('/log-waste'); setIsMobileMenuOpen(false); }} className="text-left text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] hover:bg-[#22c55e]/10 p-3 rounded-xl transition-all cursor-pointer">Log Waste</button>
+                            <button onClick={() => { user ? navigate('/my-activity') : navigate('/login'); setIsMobileMenuOpen(false); }} className="text-left text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] hover:bg-[#22c55e]/10 p-3 rounded-xl transition-all cursor-pointer">Pickup Request</button>
+                            <button onClick={() => { scrollToAbout(); setIsMobileMenuOpen(false); }} className="text-left text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] hover:bg-[#22c55e]/10 p-3 rounded-xl transition-all cursor-pointer">About</button>
+                            {user && (
+                                <div className="pt-2 mt-2 border-t border-white/10">
+                                    <button onClick={() => { handleLogout(); }} className="w-full text-left text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 p-3 rounded-xl transition-all cursor-pointer">Sign Out</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 {/* Hero Section */}
@@ -470,36 +486,6 @@ export default function Home() {
                     </div>
                 </div>
             </main>
-
-            {/* MOBILE MENU */}
-            <div className={`lg:hidden fixed inset-0 z-[150] bg-[#051F20] pt-24 px-6 transition-transform duration-500 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="flex flex-col gap-2 h-full">
-                    <button className="absolute top-8 right-6 text-white hover:text-[#22c55e] active:scale-90 transition-all duration-300 cursor-pointer" onClick={() => setIsMobileMenuOpen(false)}>
-                        <X size={32} />
-                    </button>
-                    {user && (
-                        <div className="flex items-center gap-4 p-4 bg-[#0B2B26] border border-white/5 rounded-xl mb-8">
-                            <div className="h-14 w-14 bg-[#22c55e] rounded-full flex items-center justify-center text-[#051F20] font-bold text-xl">{user.name.charAt(0).toUpperCase()}</div>
-                            <div>
-                                <p className="text-lg font-bold text-white">{user.name}</p>
-                                <p className="text-sm text-[#8EB69B]">{user.email}</p>
-                            </div>
-                        </div>
-                    )}
-                    <button onClick={() => {navigate('/home'); setIsMobileMenuOpen(false);}} className="text-2xl font-bold text-white hover:text-[#22c55e] transition-colors text-left py-4 border-b border-white/10 cursor-pointer">Home</button>
-                    <button onClick={() => {navigate('/log-waste'); setIsMobileMenuOpen(false);}} className="text-2xl font-bold text-white hover:text-[#22c55e] transition-colors text-left py-4 border-b border-white/10 cursor-pointer">Log Waste</button>
-                    <button onClick={() => {navigate('/my-activity'); setIsMobileMenuOpen(false);}} className="text-2xl font-bold text-white hover:text-[#22c55e] transition-colors text-left py-4 border-b border-white/10 cursor-pointer">Pickup Request</button>
-                    <button onClick={() => {scrollToAbout(); setIsMobileMenuOpen(false);}} className="text-2xl font-bold text-white hover:text-[#22c55e] transition-colors text-left py-4 border-b border-white/10 cursor-pointer">About</button>
-                    
-                    <div className="mt-auto pb-12 pt-6">
-                        {user ? (
-                            <button onClick={handleLogout} className="w-full py-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-sm text-base font-bold active:scale-95 transition-all duration-300 cursor-pointer">Sign Out</button>
-                        ) : (
-                            <button onClick={() => {navigate('/login'); setIsMobileMenuOpen(false);}} className="w-full py-4 bg-[#22c55e] text-[#051F20] rounded-sm text-base font-bold active:scale-95 transition-all duration-300 cursor-pointer">Log In</button>
-                        )}
-                    </div>
-                </div>
-            </div>
 
             {/* --- FLOATING AI ASSISTANT CHAT WIDGET --- */}
             <div className="fixed bottom-6 right-6 z-[999]">

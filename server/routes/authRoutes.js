@@ -13,11 +13,11 @@ import {
 
 const router = express.Router();
 
-/** * SENIOR SECURED ADMIN CODE
- * I have updated this to a more complex string to prevent 
- * unauthorized admin registrations.
+/** 
+ * SENIOR SECURED ADMIN CODE
+ * Loaded securely from environment variables instead of hardcoding.
  */
-const ADMIN_SECRET_CODE = "ECO-ULTRA-SECURE-2026-X"; 
+const ADMIN_SECRET_CODE = process.env.ADMIN_SECRET_CODE; 
 
 
 // --- REGISTER ---
@@ -69,7 +69,7 @@ router.post('/register', asyncHandler(async (req, res) => {
         if (role === 'admin') {
             const inputCode = String(adminCode || '').trim();
 
-            if (inputCode !== ADMIN_SECRET_CODE) {
+            if (!ADMIN_SECRET_CODE || inputCode !== ADMIN_SECRET_CODE) {
                 SecurityLogger.logAuthAttempt(req, false, 'INVALID_ADMIN_CODE', {
                     providedCodeLength: inputCode.length
                 });

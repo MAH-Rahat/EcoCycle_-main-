@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
     Package, Clock, CheckCircle, Leaf, Search, 
     Menu, X, LogOut, UserCircle, ArrowRight, 
-    Truck, RefreshCw, Layers, ChevronRight, AlertCircle, Calendar
+    Truck, RefreshCw, Layers, ChevronRight, AlertCircle, Calendar, Recycle
 } from 'lucide-react';
 import RequestPickup from './RequestPickup'; 
 
@@ -16,7 +16,7 @@ export default function MyActivity() {
     const [filteredActivities, setFilteredActivities] = useState([]);
     const [activeTab, setActiveTab] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedWasteId, setSelectedWasteId] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -43,13 +43,26 @@ export default function MyActivity() {
         } catch (error) { 
             console.error("Fetch failed:", error); 
         } finally { 
-            setLoading(false); 
+            setPageLoading(false); 
         }
     };
 
     const handleNavigate = (path) => {
         setIsExiting(true);
         setTimeout(() => navigate(path), 400);
+    };
+
+    const handleScrollToAbout = () => {
+        setIsExiting(true);
+        setTimeout(() => {
+            navigate('/home');
+            setTimeout(() => {
+                const aboutSection = document.getElementById('about-section');
+                if (aboutSection) {
+                    aboutSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 300);
+        }, 400);
     };
 
     useEffect(() => {
@@ -92,15 +105,23 @@ export default function MyActivity() {
         setShowModal(true);
     };
 
-    if (loading) return (
-        <div className="h-screen flex items-center justify-center bg-[#051F20]">
-            <div className="w-12 h-12 border-4 border-[#163832] border-t-[#22c55e] rounded-full animate-spin"></div>
-        </div>
-    );
+    if (pageLoading) {
+        return (
+            <div className="min-h-screen bg-[#F4F9F5] flex flex-col justify-between font-sans animate-pulse">
+                <div className="h-24 bg-[#051F20]/80 border-b border-white/10 w-full"></div>
+                <div className="max-w-7xl mx-auto w-full px-6 py-24 space-y-8">
+                    <div className="h-20 bg-gray-200 rounded-2xl w-full"></div>
+                    <div className="h-96 bg-gray-200 rounded-2xl w-full"></div>
+                </div>
+                <div className="h-24 bg-[#051F20] w-full"></div>
+            </div>
+        );
+    }
 
     return (
         <div className={`min-h-screen bg-[#F4F9F5] font-sans flex flex-col text-[#051F20] transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
             
+            {/* --- PROFESSIONAL NAVBAR --- */}
             <header className="fixed top-0 left-0 right-0 z-[100] bg-[#051F20] border-b border-white/10 shadow-md">
                 <div className="max-w-7xl mx-auto px-6 lg:px-10 h-24 flex justify-between items-center">
                     <div className="flex items-center gap-10">
@@ -113,7 +134,7 @@ export default function MyActivity() {
                             <button onClick={() => handleNavigate('/home')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">Home</button>
                             <button onClick={() => handleNavigate('/log-waste')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">Log Waste</button>
                             <button onClick={() => handleNavigate('/my-activity')} className="text-sm font-semibold text-white transition-colors cursor-pointer">Pickup Request</button>
-                            <button onClick={() => handleNavigate('/projects')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">Initiatives</button>
+                            <button onClick={handleScrollToAbout} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">About</button>
                         </nav>
                     </div>
 
@@ -138,14 +159,72 @@ export default function MyActivity() {
                                 )}
                             </div>
                         )}
-                        <button className="lg:hidden text-white hover:text-[#22c55e] transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                        
+                        {/* Smart Hamburger Button */}
+                        <button className="lg:hidden text-white bg-white/5 p-2.5 rounded-xl border border-white/10 hover:border-[#22c55e] active:scale-90 transition-all duration-300 cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                            {isMobileMenuOpen ? <X size={24} className="text-[#22c55e]" /> : <Menu size={24} />}
                         </button>
+                    </div>
+                </div>
+
+                {/* --- SMART TRANSLUCENT MOBILE MENU OVERLAY --- */}
+                <div className={`lg:hidden fixed inset-0 z-[150] bg-[#051F20]/95 backdrop-blur-xl pt-24 px-6 flex flex-col justify-between pb-12 transition-all duration-500 ease-in-out ${isMobileMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
+                    <div className="space-y-6 animate-fadeInUp">
+                        <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                            <div className="flex items-center gap-2 text-white font-bold text-lg">
+                                <Leaf size={20} className="text-[#22c55e]" />
+                                <span>EcoCycle Menu</span>
+                            </div>
+                            <button onClick={() => setIsMobileMenuOpen(false)} className="text-gray-300 bg-white/10 p-2 rounded-xl hover:text-white transition-colors cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {user && (
+                            <div className="flex items-center gap-4 p-4 bg-[#0B2B26] border border-white/10 rounded-2xl shadow-lg">
+                                <div className="h-12 w-12 bg-[#22c55e] rounded-full flex items-center justify-center text-[#051F20] font-bold text-lg shadow-inner">{user.name.charAt(0).toUpperCase()}</div>
+                                <div className="overflow-hidden">
+                                    <p className="text-base font-bold text-white truncate">{user.name}</p>
+                                    <p className="text-xs text-[#22c55e] font-medium">{userStats.points} Impact Points</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col space-y-2 pt-2">
+                            <button onClick={() => { handleNavigate('/home'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-white font-semibold text-base hover:bg-white/5 active:bg-white/10 transition-all cursor-pointer group">
+                                <span>Home</span>
+                                <ArrowRight size={16} className="text-[#8EB69B] group-hover:translate-x-1 group-hover:text-[#22c55e] transition-all" />
+                            </button>
+                            <button onClick={() => { handleNavigate('/log-waste'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-white font-semibold text-base hover:bg-white/5 active:bg-white/10 transition-all cursor-pointer group">
+                                <span>Log Waste</span>
+                                <Recycle size={18} className="text-[#8EB69B] group-hover:text-[#22c55e]" />
+                            </button>
+                            <button onClick={() => { handleNavigate('/my-activity'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-[#22c55e] bg-white/5 font-semibold text-base border border-white/10 transition-all cursor-pointer">
+                                <span>Pickup Request</span>
+                                <Truck size={18} className="text-[#22c55e]" />
+                            </button>
+                            <button onClick={() => { handleScrollToAbout(); setIsMobileMenuOpen(false); }} className="flex items-center justify-between p-4 rounded-xl text-white font-semibold text-base hover:bg-white/5 active:bg-white/10 transition-all cursor-pointer group">
+                                <span>About Us</span>
+                                <ArrowRight size={16} className="text-[#8EB69B] group-hover:translate-x-1 group-hover:text-[#22c55e] transition-all" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/10">
+                        {user ? (
+                            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 py-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold active:scale-95 transition-all cursor-pointer">
+                                <LogOut size={18} /> Sign Out
+                            </button>
+                        ) : (
+                            <button onClick={() => { handleNavigate('/login'); setIsMobileMenuOpen(false); }} className="w-full py-4 bg-[#22c55e] text-[#051F20] rounded-xl text-sm font-bold shadow-lg active:scale-95 transition-all cursor-pointer">
+                                Log In
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>
 
-            <main className="flex-grow w-full max-w-7xl mx-auto px-4 lg:px-10 pt-36 pb-24 z-10">
+            <main className="flex-grow w-full max-w-7xl mx-auto px-4 lg:px-10 pt-36 pb-24 z-10 animate-fadeInUp">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-2xl border border-gray-100 shadow-[0_10px_30px_rgba(5,31,32,0.03)] mb-8">
                     <div>
                         <div className="inline-flex items-center gap-2 mb-1">
@@ -172,8 +251,8 @@ export default function MyActivity() {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 mb-6">
-                    <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between gap-4 mb-6 overflow-x-auto pb-2">
+                    <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm shrink-0">
                         {[
                             { label: 'All', count: activities.length },
                             { label: 'Pending', count: activities.filter(a => a.status === 'pending' || a.status === 'Pending').length },
@@ -195,9 +274,9 @@ export default function MyActivity() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(5,31,32,0.03)] border border-gray-100 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(5,31,32,0.03)] border border-gray-100 overflow-hidden animate-scaleIn">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
                             <thead>
                                 <tr className="bg-[#F4F9F5] border-b border-gray-100 text-[11px] font-bold text-[#235347] uppercase tracking-wider">
                                     <th className="py-4 px-6">Material Type</th>
@@ -299,6 +378,20 @@ export default function MyActivity() {
                     </p>
                 </div>
             </footer>
+
+            {/* --- CUSTOM ANIMATIONS STYLESHEET --- */}
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes fadeInUp { 
+                    from { opacity: 0; transform: translateY(20px); } 
+                    to { opacity: 1; transform: translateY(0); } 
+                }
+                @keyframes scaleIn { 
+                    from { opacity: 0; transform: scale(0.97); } 
+                    to { opacity: 1; transform: scale(1); } 
+                }
+                .animate-fadeInUp { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-scaleIn { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+            `}} />
         </div>
     );
 }
