@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-    ArrowLeft, Truck, Package, Clock, CheckCircle, Leaf, XCircle, Search, 
-    Filter, Zap, ChevronDown, Menu, X, LogOut, Globe, Activity, UserCircle, Bell, Settings
+    Package, Clock, CheckCircle, Leaf, Search, 
+    Menu, X, LogOut, UserCircle, ArrowRight, 
+    Truck, RefreshCw, Layers, ChevronRight, AlertCircle, Calendar
 } from 'lucide-react';
 import RequestPickup from './RequestPickup'; 
 
@@ -13,7 +14,7 @@ export default function MyActivity() {
     const navigate = useNavigate();
     const [activities, setActivities] = useState([]);
     const [filteredActivities, setFilteredActivities] = useState([]);
-    const [activeFilter, setActiveFilter] = useState('All');
+    const [activeTab, setActiveTab] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -21,25 +22,43 @@ export default function MyActivity() {
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [userStats, setUserStats] = useState({ points: 0 });
+    const [isExiting, setIsExiting] = useState(false);
     const dropdownRef = useRef(null);
 
     const userInfoString = localStorage.getItem('userInfo');
     const user = userInfoString ? JSON.parse(userInfoString) : null;
-    const isAdmin = user?.role === 'admin';
 
     const fetchActivity = async () => {
         if (!user || !user._id) return;
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/waste/user/${user._id}`);
+            const token = localStorage.getItem('token');
+            const headers = { Authorization: `Bearer ${token}` };
+
+            const res = await axios.get(`${API_BASE_URL}/api/waste/user/${user._id}`, { headers });
             setActivities(res.data);
             setFilteredActivities(res.data);
-            const statsRes = await axios.get(`${API_BASE_URL}/api/waste/stats/${user._id}`);
+            
+            const statsRes = await axios.get(`${API_BASE_URL}/api/waste/stats/${user._id}`, { headers });
             setUserStats(statsRes.data);
-        } catch (error) { console.error("Fetch failed"); } finally { setLoading(false); }
+        } catch (error) { 
+            console.error("Fetch failed:", error); 
+        } finally { 
+            setLoading(false); 
+        }
+    };
+
+    const handleNavigate = (path) => {
+        setIsExiting(true);
+        setTimeout(() => navigate(path), 400);
     };
 
     useEffect(() => {
-        if (!user) { navigate('/login'); } else { fetchActivity(); }
+        if (!user) { 
+            navigate('/login'); 
+        } else { 
+            fetchActivity(); 
+        }
+
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setShowProfileDropdown(false);
@@ -51,15 +70,21 @@ export default function MyActivity() {
 
     useEffect(() => {
         let result = activities;
-        if (activeFilter === 'Schedule') result = result.filter(item => item.status === 'Accepted');
-        else if (activeFilter !== 'All') result = result.filter(item => item.status === activeFilter);
-        if (searchTerm) result = result.filter(item => item.material.toLowerCase().includes(searchTerm.toLowerCase()));
+        if (activeTab === 'Schedule') result = result.filter(item => item.status === 'verified' || item.status === 'Accepted');
+        else if (activeTab !== 'All') result = result.filter(item => item.status === activeTab.toLowerCase() || item.status === activeTab);
+        
+        if (searchTerm) result = result.filter(item => (item.material || item.wasteType || '').toLowerCase().includes(searchTerm.toLowerCase()));
         setFilteredActivities(result);
-    }, [activeFilter, searchTerm, activities]);
+    }, [activeTab, searchTerm, activities]);
 
     const handleLogout = () => {
-        localStorage.removeItem('userInfo');
-        navigate('/');
+        setIsExiting(true);
+        setTimeout(() => {
+            localStorage.removeItem('userInfo');
+            localStorage.removeItem('token');
+            navigate('/');
+            setIsMobileMenuOpen(false);
+        }, 400);
     };
 
     const handleOpenPickup = (id) => {
@@ -67,135 +92,213 @@ export default function MyActivity() {
         setShowModal(true);
     };
 
-    const FilterButton = ({ label, count }) => (
-        <button 
-            onClick={() => setActiveFilter(label)}
-            className={`px-4 py-2 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer active:scale-95 shrink-0
-            ${activeFilter === label ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-100 hover:bg-slate-50'}`}
-        >
-            {label} {count > 0 && <span className={`px-1.5 py-0.5 rounded-md text-[8px] ${activeFilter === label ? 'bg-[#4CAF50] text-white' : 'bg-slate-100'}`}>{count}</span>}
-        </button>
-    );
-
     if (loading) return (
-        <div className="h-screen flex items-center justify-center bg-white">
-            <div className="w-10 h-10 border-4 border-[#4CAF50] border-t-transparent rounded-full animate-spin"></div>
+        <div className="h-screen flex items-center justify-center bg-[#051F20]">
+            <div className="w-12 h-12 border-4 border-[#163832] border-t-[#22c55e] rounded-full animate-spin"></div>
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] font-sans flex flex-col overflow-x-hidden text-slate-900">
+        <div className={`min-h-screen bg-[#F4F9F5] font-sans flex flex-col text-[#051F20] transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
             
-            {/* --- MASTER NAVBAR --- */}
-            <header className="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-md border-b border-slate-200 h-16 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 lg:px-8 h-full flex justify-between items-center">
-                    <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => navigate('/home')}>
-                            <div className="bg-[#4CAF50] p-1.5 rounded-lg group-hover:rotate-12 transition-transform"><Leaf className="text-white h-5 w-5" /></div>
-                            <span className="text-xl font-black tracking-tighter uppercase italic">EcoCycle</span>
+            <header className="fixed top-0 left-0 right-0 z-[100] bg-[#051F20] border-b border-white/10 shadow-md">
+                <div className="max-w-7xl mx-auto px-6 lg:px-10 h-24 flex justify-between items-center">
+                    <div className="flex items-center gap-10">
+                        <div className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform duration-300" onClick={() => handleNavigate('/')}>
+                            <Leaf className="text-[#22c55e] h-8 w-8 group-hover:rotate-12 transition-transform duration-500" />
+                            <span className="text-2xl font-bold tracking-wide text-white">EcoCycle</span>
                         </div>
-                        <nav className="hidden lg:flex items-center gap-6">
-                            <button onClick={() => navigate('/home')} className="text-sm font-bold text-slate-500 hover:text-[#4CAF50] cursor-pointer transition-colors">Home</button>
-                            <button onClick={() => navigate('/log-waste')} className="text-sm font-bold text-slate-500 hover:text-[#4CAF50] cursor-pointer transition-colors">Log Waste</button>
-                            <button onClick={() => navigate('/my-activity')} className="text-sm font-bold text-[#4CAF50] cursor-pointer">Pickup Request</button>
+
+                        <nav className="hidden lg:flex items-center gap-8">
+                            <button onClick={() => handleNavigate('/home')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">Home</button>
+                            <button onClick={() => handleNavigate('/log-waste')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">Log Waste</button>
+                            <button onClick={() => handleNavigate('/my-activity')} className="text-sm font-semibold text-white transition-colors cursor-pointer">Pickup Request</button>
+                            <button onClick={() => handleNavigate('/projects')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-colors cursor-pointer">Initiatives</button>
                         </nav>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        {user && (
-                            <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full border border-yellow-200">
-                                <Zap size={14} className="text-yellow-500 fill-yellow-500" /><span className="text-xs font-black text-yellow-700 tracking-tighter">{userStats.points} Coins</span>
-                            </div>
-                        )}
+                    <div className="flex items-center gap-6">
                         {user && (
                             <div className="hidden lg:block relative" ref={dropdownRef}>
-                                <button onClick={() => setShowProfileDropdown(!showProfileDropdown)} className="flex items-center gap-3 p-1.5 pr-4 rounded-2xl border bg-white border-slate-200 hover:border-slate-300 transition-all cursor-pointer active:scale-95">
-                                    <div className="h-8 w-8 bg-slate-900 rounded-xl flex items-center justify-center text-[#4CAF50] font-black text-xs">{user.name.charAt(0).toUpperCase()}</div>
-                                    <div className="text-left leading-none"><p className="text-[11px] font-black text-slate-800 mb-1 uppercase">{user.name.split(' ')[0]}</p><p className="text-[9px] font-bold text-[#4CAF50] uppercase tracking-widest">Member</p></div>
-                                    <ChevronDown size={14} className={`text-slate-400 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                                <button onClick={() => setShowProfileDropdown(!showProfileDropdown)} className="flex items-center gap-3 cursor-pointer group">
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold text-white group-hover:text-[#22c55e] transition-colors">{user.name.split(' ')[0]}</p>
+                                        <p className="text-xs text-[#8EB69B]">{userStats.points} Impact Points</p>
+                                    </div>
+                                    <div className="h-10 w-10 bg-[#163832] border border-[#235347] rounded-full flex items-center justify-center text-[#22c55e] font-bold">
+                                        {user.name.charAt(0).toUpperCase()}
+                                    </div>
                                 </button>
+
                                 {showProfileDropdown && (
-                                    <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 animate-in fade-in slide-in-from-top-2 origin-top-right">
-                                        <div className="px-4 py-3 border-b border-slate-50"><p className="text-xs font-black text-slate-900 truncate uppercase">{user.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Verified User</p></div>
-                                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"><LogOut size={16} /> Sign Out</button>
+                                    <div className="absolute right-0 mt-4 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 p-2 z-50 animate-scaleIn origin-top-right">
+                                        <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-[#163832] hover:bg-[#F4F9F5] rounded-lg transition-all cursor-pointer"><UserCircle size={18} /> Profile</button>
+                                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"><LogOut size={18} /> Sign Out</button>
                                     </div>
                                 )}
                             </div>
                         )}
-                        <button className="lg:hidden relative w-10 h-10 flex items-center justify-center text-slate-900 bg-slate-100 rounded-xl active:scale-90 transition-all cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                            <div className={`transition-transform duration-500 ${isMobileMenuOpen ? 'rotate-[360deg]' : 'rotate-0'}`}>{isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}</div>
+                        <button className="lg:hidden text-white hover:text-[#22c55e] transition-colors" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                         </button>
                     </div>
                 </div>
             </header>
 
-            {/* --- MAIN CONTENT AREA: FIXED PADDING TOP FOR PC --- */}
-            <main className="flex-grow w-full max-w-4xl mx-auto px-4 md:px-8 pt-24 pb-12">
-                <div className="mb-8 space-y-6">
-                    <div className="text-center md:text-left animate-in fade-in slide-in-from-left-4 duration-500">
-                        <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-2 tracking-tighter uppercase italic leading-none">Activity Terminal</h1>
-                        <p className="text-xs md:text-sm text-slate-400 font-bold uppercase tracking-widest">Tracking your environmental footprints</p>
+            <main className="flex-grow w-full max-w-7xl mx-auto px-4 lg:px-10 pt-36 pb-24 z-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-2xl border border-gray-100 shadow-[0_10px_30px_rgba(5,31,32,0.03)] mb-8">
+                    <div>
+                        <div className="inline-flex items-center gap-2 mb-1">
+                            <Leaf size={16} className="text-[#22c55e]" />
+                            <p className="text-xs font-bold text-[#235347] uppercase tracking-wider">Citizen Logistics</p>
+                        </div>
+                        <h2 className="text-3xl font-bold text-[#051F20] tracking-tight">Pickup Requests Matrix</h2>
                     </div>
 
-                    <div className="flex flex-col gap-4">
-                        {/* Search Bar: Mobile friendly */}
-                        <div className="relative w-full">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input type="text" placeholder="Filter materials..." className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold shadow-sm focus:ring-2 focus:ring-[#4CAF50] outline-none cursor-text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="relative w-full md:w-72 group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#22c55e]" size={18} />
+                            <input 
+                                type="text" 
+                                placeholder="Search material..." 
+                                value={searchTerm} 
+                                onChange={(e) => setSearchTerm(e.target.value)} 
+                                className="w-full pl-12 pr-6 py-3 bg-[#F4F9F5] border border-gray-200 rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-[#22c55e] transition-all text-[#051F20] placeholder:text-gray-400" 
+                            />
                         </div>
-
-                        {/* Status Tabs: Proportional scroll on mobile */}
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar w-full">
-                            <FilterButton label="All" count={activities.length} />
-                            <FilterButton label="Pending" count={activities.filter(a => a.status === 'Pending').length} />
-                            <FilterButton label="Schedule" count={activities.filter(a => a.status === 'Accepted').length} />
-                            <FilterButton label="Rejected" count={activities.filter(a => a.status === 'Rejected').length} />
-                        </div>
+                        <button onClick={fetchActivity} className="p-3 bg-[#F4F9F5] border border-gray-200 rounded-xl text-[#051F20] hover:bg-[#051F20] hover:text-white transition-all cursor-pointer shrink-0" title="Refresh Data">
+                            <RefreshCw size={18} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Logs List: Mobile optimized width */}
-                <div className="space-y-4 w-full">
-                    {filteredActivities.length > 0 ? filteredActivities.map((item, idx) => (
-                        <div key={item._id} className="bg-white p-5 md:p-8 rounded-[2rem] shadow-sm border border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:shadow-xl transition-all duration-300">
-                            <div className="flex items-center gap-4 md:gap-5">
-                                <div className="p-4 rounded-2xl bg-slate-50 text-slate-300 group-hover:text-[#4CAF50] transition-colors"><Package size={24} /></div>
-                                <div className="min-w-0">
-                                    <h3 className="font-black text-lg md:text-xl text-slate-800 tracking-tight italic uppercase truncate">{item.material}</h3>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{item.weight} KG • {new Date(item.createdAt).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 border-t md:border-t-0 pt-4 md:pt-0">
-                                <span className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border ${item.status === 'Accepted' ? 'bg-green-50 text-green-700 border-green-100' : item.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-yellow-50 text-yellow-700 border-yellow-100'}`}>{item.status}</span>
-                                {item.status === 'Accepted' && (item.pickupDetails?.isRequested ? <div className="flex items-center gap-2 text-teal-600 bg-teal-50 px-4 py-2.5 rounded-xl border border-teal-100 font-black text-[9px] uppercase tracking-widest"><CheckCircle size={14} /> Requested</div> : <button onClick={() => handleOpenPickup(item._id)} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black active:scale-95 flex items-center gap-2 cursor-pointer transition-all shadow-lg"><Truck size={16} /> Schedule</button>)}
-                            </div>
-                        </div>
-                    )) : <div className="text-center py-20 bg-white rounded-[3rem] border-4 border-dashed border-slate-100"><Clock className="h-12 w-12 text-slate-100 mx-auto mb-4" /><p className="text-slate-400 font-black uppercase text-xs tracking-widest italic leading-relaxed">No activity records found</p></div>}
+                <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+                        {[
+                            { label: 'All', count: activities.length },
+                            { label: 'Pending', count: activities.filter(a => a.status === 'pending' || a.status === 'Pending').length },
+                            { label: 'Schedule', count: activities.filter(a => a.status === 'verified' || a.status === 'Accepted').length },
+                            { label: 'Rejected', count: activities.filter(a => a.status === 'rejected' || a.status === 'Rejected').length }
+                        ].map((tab) => (
+                            <button 
+                                key={tab.label}
+                                onClick={() => setActiveTab(tab.label)}
+                                className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                    activeTab === tab.label 
+                                        ? 'bg-[#051F20] text-white shadow-md' 
+                                        : 'text-[#235347] hover:bg-[#F4F9F5]'
+                                }`}
+                            >
+                                {tab.label} ({tab.count})
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(5,31,32,0.03)] border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[#F4F9F5] border-b border-gray-100 text-[11px] font-bold text-[#235347] uppercase tracking-wider">
+                                    <th className="py-4 px-6">Material Type</th>
+                                    <th className="py-4 px-6">Estimated Weight</th>
+                                    <th className="py-4 px-6">Pickup Address</th>
+                                    <th className="py-4 px-6">Logged Timestamp</th>
+                                    <th className="py-4 px-6">Current Status</th>
+                                    <th className="py-4 px-6 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 text-sm">
+                                {filteredActivities.length > 0 ? filteredActivities.map((item) => {
+                                    const isAccepted = item.status === 'verified' || item.status === 'Accepted';
+                                    const isRejected = item.status === 'rejected' || item.status === 'Rejected';
+                                    const isRequested = item.pickupDetails?.isRequested;
+                                    const displayStatus = isAccepted ? (isRequested ? 'Scheduled' : 'Ready for Pickup') : isRejected ? 'Rejected' : 'Pending Verification';
+
+                                    return (
+                                        <tr key={item._id} className="hover:bg-[#F4F9F5]/40 transition-colors">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 bg-[#F4F9F5] rounded-xl flex items-center justify-center text-[#22c55e] border border-gray-100 shadow-sm shrink-0">
+                                                        <Package size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-[#051F20] capitalize">{item.material || item.wasteType}</p>
+                                                        <p className="text-[11px] font-medium text-[#8EB69B]">ID: {item._id.slice(-6)}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td className="py-4 px-6 whitespace-nowrap">
+                                                <span className="font-bold text-[#051F20] text-base">{item.weight} kg</span>
+                                            </td>
+
+                                            <td className="py-4 px-6 max-w-[240px]">
+                                                <span className="text-xs font-medium text-[#235347] truncate block">{item.pickupDetails?.address || 'Standard Location'}</span>
+                                            </td>
+
+                                            <td className="py-4 px-6 whitespace-nowrap">
+                                                <span className="text-xs font-medium text-[#8EB69B]">{new Date(item.createdAt).toLocaleDateString()}</span>
+                                            </td>
+
+                                            <td className="py-4 px-6 whitespace-nowrap">
+                                                <span className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider border ${
+                                                    isAccepted ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                                    isRejected ? 'bg-rose-50 text-rose-700 border-rose-200' : 
+                                                    'bg-amber-50 text-amber-700 border-amber-200'
+                                                }`}>
+                                                    {displayStatus}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-4 px-6 text-right whitespace-nowrap">
+                                                {isAccepted ? (
+                                                    isRequested ? (
+                                                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 px-4 py-2 rounded-xl border border-teal-200">
+                                                            <CheckCircle size={14} /> Scheduled
+                                                        </span>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleOpenPickup(item._id)} 
+                                                            className="px-4 py-2 bg-[#22c55e] text-[#051F20] rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-[#051F20] hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm inline-flex items-center gap-1.5"
+                                                        >
+                                                            <Truck size={14} /> Schedule
+                                                        </button>
+                                                    )
+                                                ) : (
+                                                    <span className="text-xs font-semibold text-gray-400">Awaiting Admin</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                }) : (
+                                    <tr>
+                                        <td colSpan="6" className="py-20 text-center">
+                                            <Package className="h-14 w-14 text-gray-200 mx-auto mb-4" />
+                                            <h3 className="text-xl font-bold text-[#051F20] mb-1">No pickup logs found</h3>
+                                            <p className="text-sm text-[#235347]">You haven't logged any waste under this criteria yet.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </main>
 
             {showModal && <RequestPickup wasteId={selectedWasteId} onClose={() => { setShowModal(false); fetchActivity(); }} />}
-            
-            {/* MOBILE NAV DROPDOWN (SYNCED) */}
-            <div className={`lg:hidden fixed top-16 left-0 right-0 z-[90] bg-white border-b border-slate-200 shadow-2xl transition-all duration-300 ease-in-out origin-top ${isMobileMenuOpen ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0'}`}>
-                <div className="p-6 flex flex-col gap-4">
-                    {user && (
-                        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl mb-2">
-                            <div className="h-12 w-12 bg-slate-900 rounded-xl flex items-center justify-center text-[#4CAF50] font-black text-xl">{user.name.charAt(0).toUpperCase()}</div>
-                            <div><p className="text-sm font-black text-slate-900 uppercase tracking-tight">{user.name}</p><p className="text-[10px] font-bold text-[#4CAF50] uppercase tracking-widest">Authorized Member</p></div>
-                        </div>
-                    )}
-                    <button onClick={() => {navigate('/home'); setIsMobileMenuOpen(false);}} className="text-lg font-black text-slate-900 uppercase text-left py-3 border-b border-slate-50 cursor-pointer">Home</button>
-                    <button onClick={() => {navigate('/log-waste'); setIsMobileMenuOpen(false);}} className="text-lg font-black text-slate-900 uppercase text-left py-3 border-b border-slate-50 cursor-pointer">Log Waste</button>
-                    <button onClick={() => {navigate('/my-activity'); setIsMobileMenuOpen(false);}} className="text-lg font-black text-slate-900 uppercase text-left py-3 border-b border-slate-50 cursor-pointer">Pickup Request</button>
-                    {user ? <button onClick={handleLogout} className="p-4 bg-rose-50 text-rose-500 rounded-2xl text-sm font-black uppercase mt-2 cursor-pointer transition-all active:scale-95 shadow-sm">Sign Out</button> : <button onClick={() => navigate('/login')} className="p-4 bg-[#4CAF50] text-white rounded-2xl text-sm font-black uppercase cursor-pointer shadow-md">Sign In</button>}
-                </div>
-            </div>
 
-            <style jsx="true">{`
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
+            <footer className="w-full bg-[#051F20] text-[#8EB69B] border-t border-white/10 py-10 px-6 lg:px-10 mt-auto">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex items-center gap-2 text-white font-bold text-lg">
+                        <Leaf size={18} className="text-[#22c55e]" />
+                        <span>EcoCycle Logistics Hub</span>
+                    </div>
+                    <p className="text-xs text-[#8EB69B]">
+                        © {new Date().getFullYear()} All Rights Reserved. Website By <span className="text-white">MAHR</span>
+                    </p>
+                </div>
+            </footer>
         </div>
     );
 }

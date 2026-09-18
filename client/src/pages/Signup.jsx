@@ -1,193 +1,243 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { User, Phone, Mail, Lock, Shield, TrendingUp, Zap, Briefcase } from 'lucide-react'; 
+import { User, Phone, Mail, Lock, Shield, TrendingUp, Zap, Briefcase, Eye, EyeOff, ArrowLeft, Leaf, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react'; 
 
-// --- SENIOR FIX: Define Helper Component OUTSIDE the main function for stability ---
-const FloatingInputField = ({ icon: Icon, name, type, label, value, onChange, required=false }) => (
-    <div className="relative z-0 group">
+const FloatingInputField = ({ icon: Icon, name, type, label, value, onChange, required=false, delay="0s", children }) => (
+    <div className="relative z-0 w-full mb-5 group animate-slideUp opacity-0" style={{ animationDelay: delay, animationFillMode: 'forwards' }}>
         <input
             name={name}
             type={type}
-            value={value} // CRITICAL: Ensure this is correctly passed
+            value={value} 
             onChange={onChange}
-            className="block w-full py-2.5 px-0 text-sm text-white bg-transparent border-0 border-b-2 border-gray-500 appearance-none focus:outline-none focus:ring-0 focus:border-[#84CC16] peer transition-all duration-300 font-bold"
+            className="block w-full pt-6 pb-2.5 px-4 text-sm text-white bg-white/5 border border-white/10 rounded-xl appearance-none focus:outline-none focus:ring-0 focus:border-[#22c55e] focus:bg-white/10 transition-all duration-300 font-medium peer shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] autofill-fix"
             placeholder=" "
             required={required}
         />
         <label 
-            className={`absolute text-sm text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 peer-focus:text-[#84CC16] font-bold`}
+            className="absolute text-sm text-white/50 duration-300 transform -translate-y-3 scale-75 top-4 left-4 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#22c55e] font-medium pointer-events-none flex items-center gap-2"
         >
-            <div className="flex items-center space-x-2">
-                <Icon className="h-4 w-4" />
-                <span>{label} {required && <span className="text-red-400">*</span>}</span>
-            </div>
+            <Icon className="h-4 w-4 transition-colors duration-300 peer-focus:text-[#22c55e]" />
+            <span>{label} {required && <span className="text-red-400">*</span>}</span>
         </label>
+        {children}
     </div>
 );
-// ----------------------------------------------------------------------------------
 
 export default function Signup() {
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(false);
+    const [showAdminCode, setShowAdminCode] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [isExiting, setIsExiting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(null); // Replaced alert with state
     const [formData, setFormData] = useState({
-        name: '',
-        mobile: '',
-        email: '',
-        username: '',
-        password: '',
-        role: 'citizen',
-        adminCode: '' // Should be reset/cleared when role changes
+        name: '', mobile: '', email: '', username: '', password: '', role: 'citizen', adminCode: '' 
     });
 
-    // The key handler for all inputs
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (errorMsg) setErrorMsg(null); // Clear error on type
     };
 
     const handleRoleChange = (e) => {
         const newRole = e.target.value;
-        setFormData(prevData => ({ 
-            ...prevData, 
-            role: newRole,
-            // Clear adminCode if switching away from admin
-            adminCode: newRole === 'admin' ? prevData.adminCode : '', 
-        }));
+        setFormData(prevData => ({ ...prevData, role: newRole, adminCode: newRole === 'admin' ? prevData.adminCode : '' }));
+        if (errorMsg) setErrorMsg(null); // Clear error on change
+    };
+
+    const handleNavigateBack = () => {
+        setIsExiting(true);
+        setTimeout(() => navigate('/'), 400); 
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setErrorMsg(null); // Reset error state
+
         try {
-            // UPDATED: Logic to find the Render link in Vercel or use Localhost
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            
-            // Send registration request to the dynamic URL
             const res = await axios.post(`${apiUrl}/api/auth/register`, formData);
             
             if (res.data) {
-                alert("Registration Successful! Please log in.");
-                navigate('/login');
+                setLoading(false);
+                setIsSuccess(true);
+                
+                // Show success animation, then fade out and navigate to login
+                setTimeout(() => {
+                    setIsExiting(true);
+                    setTimeout(() => navigate('/login'), 400); 
+                }, 1500); 
             }
         } catch (error) {
-            console.error(error);
-            alert(error.response?.data?.message || "Registration failed");
+            setLoading(false);
+            let errorMessage = "Registration failed. Please check your connection.";
+            if (error.response?.status === 409) {
+                const errorData = error.response?.data;
+                if (errorData?.message?.toLowerCase().includes('email')) errorMessage = "This email is already registered.";
+                else if (errorData?.message?.toLowerCase().includes('username')) errorMessage = "This username is taken.";
+                else errorMessage = "Email or username already registered.";
+            } else if (error.response?.status === 400) errorMessage = error.response?.data?.message || "Invalid input parameters.";
+            else if (error.response?.status === 403) errorMessage = "Invalid admin code provided.";
+            
+            // Set error state instead of using alert()
+            setErrorMsg(errorMessage);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden p-4 font-sans">
+        <div className={`min-h-screen flex items-center justify-center bg-[#05160A] relative overflow-hidden p-4 sm:p-8 font-sans selection:bg-[#22c55e]/30 transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
             
-            {/* --- Dynamic Background --- */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute top-0 right-1/4 w-80 h-80 bg-blue-500 opacity-20 rounded-full mix-blend-lighten filter blur-3xl animate-blob animation-delay-2000" />
-                <div className="absolute bottom-1/2 left-1/4 w-96 h-96 bg-[#84CC16] opacity-30 rounded-full mix-blend-lighten filter blur-3xl animate-blob" />
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#166534]/30 rounded-full blur-[120px] animate-pulse-slow" />
+                <div className="absolute bottom-[-15%] right-[-10%] w-[800px] h-[800px] bg-[#14532d]/40 rounded-[100px] rotate-45 blur-[80px] animate-float" />
+                <div className="absolute top-[40%] left-[60%] w-[400px] h-[400px] bg-[#22c55e]/15 rounded-full blur-[100px]" />
             </div>
 
-            {/* --- Signup Card (Glassmorphism Effect) --- */}
-            <div 
-                className="relative bg-white/10 backdrop-blur-md border border-white/20 p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-xl transform transition-all duration-700 animate-fadeInUp z-10"
-            >
-                <div className="text-center mb-10">
-                    <h1 className="text-4xl font-extrabold text-[#84CC16] drop-shadow-lg mb-1 flex items-center justify-center space-x-2 italic uppercase">
-                        <Zap className="h-8 w-8 fill-current"/>
-                        <span>EcoCycle Signup</span>
-                    </h1>
-                    <p className="text-sm font-bold text-gray-400 mt-2 uppercase tracking-widest">Start your journey to sustainability.</p>
+            <div className="absolute top-8 left-8 z-20 animate-fadeIn opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+                <button onClick={handleNavigateBack} className="flex items-center space-x-2 text-white/60 hover:text-[#22c55e] hover:bg-white/10 active:scale-90 transition-all duration-300 font-medium text-sm tracking-wide cursor-pointer bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                    <ArrowLeft size={16} />
+                    <span>Back</span>
+                </button>
+            </div>
+
+            <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 p-8 md:p-12 rounded-[2.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.3)] w-full max-w-2xl animate-scaleUp z-10 my-16 md:my-0">
+                
+                <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-white/10 to-transparent pointer-events-none rounded-t-[2.5rem]"></div>
+
+                <div className="text-center mb-8 relative z-10 animate-slideDown opacity-0" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
+                    <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-md bg-white/5 border border-white/10 mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:bg-white/10 transition-colors duration-300">
+                        <Leaf size={14} className="text-[#22c55e] animate-pulse" />
+                        <span className="text-[10px] font-bold tracking-[0.2em] text-white/90 uppercase">Registration</span>
+                    </div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-2 drop-shadow-md">Join EcoCycle</h1>
+                    <p className="text-sm font-medium text-white/60">Start your journey to a sustainable future.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
                     
-                    {/* --- Group 1: Role Selection --- */}
-                    <div className="p-4 rounded-xl border border-white/20 bg-black/10">
-                        <h3 className="text-lg font-bold text-gray-200 mb-3 flex items-center space-x-2">
-                            <Briefcase className="h-5 w-5 text-blue-400"/>
+                    {/* Role Selection Group */}
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] animate-slideUp opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+                        <h3 className="text-sm font-bold text-white/90 mb-4 flex items-center space-x-2 tracking-wide">
+                            <Briefcase className="h-4 w-4 text-[#22c55e]"/>
                             <span>1. Role & Access</span>
                         </h3>
-                        <div className="flex flex-col">
-                            <label className="text-gray-400 text-sm block mb-1 font-bold">I am registering as...</label>
+                        <div className="flex flex-col relative group">
                             <select 
-                                name="role" 
-                                onChange={handleRoleChange} // Use dedicated handler
-                                className="w-full bg-white/10 text-white rounded-xl p-3 cursor-pointer focus:border-[#84CC16] focus:ring-1 focus:ring-[#84CC16] transition-all duration-300 border border-transparent hover:border-white/20 font-bold"
+                                name="role" onChange={handleRoleChange} 
+                                className="w-full bg-white/5 text-white border border-white/10 rounded-xl p-3.5 pr-10 focus:outline-none focus:border-[#22c55e] hover:bg-white/10 focus:bg-white/10 transition-all duration-300 font-medium appearance-none shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer"
                                 value={formData.role} 
                             >
-                                <option value="citizen" className="bg-gray-800">Citizen</option>
-                                <option value="collector" className="bg-gray-800">Collector</option>
-                                <option value="admin" className="bg-gray-800">Admin</option>
+                                <option value="citizen" className="bg-[#05160A] text-white">Citizen</option>
+                                <option value="collector" className="bg-[#05160A] text-white">Collector</option>
+                                <option value="admin" className="bg-[#05160A] text-white">Admin</option>
                             </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 group-hover:text-white transition-colors pointer-events-none" size={18} />
                         </div>
 
                         {formData.role === 'admin' && (
-                            <div className="flex flex-col mt-4">
-                                <FloatingInputField 
-                                    icon={Shield} 
-                                    name="adminCode" 
-                                    type="password" 
-                                    label="Admin Private Code (Required)"
-                                    onChange={handleChange} // Use main handler
-                                    required={true}
-                                    value={formData.adminCode} // CRITICAL: Ensure value is tied to state
-                                />
+                            <div className="flex flex-col mt-5 animate-slideDown">
+                                <FloatingInputField icon={Shield} name="adminCode" type={showAdminCode ? "text" : "password"} label="Admin Private Code" onChange={handleChange} required={true} value={formData.adminCode} delay="0s">
+                                    <button type="button" onClick={() => setShowAdminCode(!showAdminCode)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#22c55e] active:scale-75 transition-all duration-300 cursor-pointer p-1">
+                                        {showAdminCode ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </FloatingInputField>
                             </div>
                         )}
                     </div>
 
-                    {/* --- Group 2: Personal & Account Security --- */}
-                    <div className="p-4 rounded-xl border border-white/20 bg-black/10">
-                        <h3 className="text-lg font-bold text-gray-200 mb-3 flex items-center space-x-2">
-                            <User className="h-5 w-5 text-[#84CC16]"/>
+                    {/* Account Details Group */}
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] animate-slideUp opacity-0" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
+                        <h3 className="text-sm font-bold text-white/90 mb-5 flex items-center space-x-2 tracking-wide">
+                            <User className="h-4 w-4 text-[#22c55e]"/>
                             <span>2. Account Details</span>
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
-                            <FloatingInputField icon={User} name="name" type="text" label="Full Name" onChange={handleChange} required={true} value={formData.name} />
-                            <FloatingInputField icon={Phone} name="mobile" type="text" label="Mobile Number" onChange={handleChange} required={true} value={formData.mobile} />
-                            <FloatingInputField icon={User} name="username" type="text" label="Username" onChange={handleChange} required={true} value={formData.username} />
-                            <FloatingInputField icon={Mail} name="email" type="email" label="Email Address" onChange={handleChange} required={true} value={formData.email} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
+                            <FloatingInputField icon={User} name="name" type="text" label="Full Name" onChange={handleChange} required={true} value={formData.name} delay="0.4s" />
+                            <FloatingInputField icon={Phone} name="mobile" type="text" label="Mobile Number" onChange={handleChange} required={true} value={formData.mobile} delay="0.5s"/>
+                            <FloatingInputField icon={User} name="username" type="text" label="Username" onChange={handleChange} required={true} value={formData.username} delay="0.6s"/>
+                            <FloatingInputField icon={Mail} name="email" type="email" label="Email Address" onChange={handleChange} required={true} value={formData.email} delay="0.7s"/>
+                            
                             <div className="md:col-span-2">
-                                <FloatingInputField icon={Lock} name="password" type="password" label="Password" onChange={handleChange} required={true} value={formData.password} />
+                                <FloatingInputField icon={Lock} name="password" type={showPassword ? "text" : "password"} label="Password" onChange={handleChange} required={true} value={formData.password} delay="0.8s">
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-[#22c55e] active:scale-75 transition-all duration-300 cursor-pointer p-1">
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </FloatingInputField>
                             </div>
                         </div>
                     </div>
 
-                    <button 
-                        type="submit"
-                        className="w-full flex items-center justify-center space-x-2 bg-[#84CC16] text-gray-900 font-extrabold py-4 rounded-xl 
-                                   hover:bg-white transition-all duration-300 shadow-xl shadow-lime-900/40 text-sm uppercase tracking-[0.2em] 
-                                   transform hover:scale-[1.02] active:scale-95 ease-in-out">
-                        <TrendingUp className="h-6 w-6"/>
-                        <span>Create Account</span>
-                    </button>
+                    <div className="animate-slideUp opacity-0 mt-2" style={{ animationDelay: '0.9s', animationFillMode: 'forwards' }}>
+                        {/* INLINE PROFESSIONAL ERROR MESSAGE */}
+                        {errorMsg && (
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 mb-4 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)] animate-fadeIn">
+                                <div className="bg-red-500/20 p-2 rounded-lg flex-shrink-0">
+                                    <AlertCircle size={20} className="text-red-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-red-400">Registration Failed</p>
+                                    <p className="text-xs text-red-300/80">{errorMsg}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            type="submit"
+                            disabled={loading || isSuccess}
+                            className={`w-full flex items-center justify-center space-x-2 font-bold py-4 rounded-xl transition-all duration-500 text-sm tracking-wide shadow-lg
+                                ${isSuccess 
+                                    ? 'bg-[#22c55e] text-white shadow-[0_0_30px_rgba(34,197,94,0.6)] scale-[1.02]' 
+                                    : 'bg-[#22c55e] text-[#05160A] hover:bg-[#4ade80] hover:shadow-[0_0_25px_rgba(34,197,94,0.4)] active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100'
+                                }`}
+                        >
+                            {loading ? (
+                                <div className="w-5 h-5 border-2 border-[#05160A] border-t-transparent rounded-full animate-spin"></div>
+                            ) : isSuccess ? (
+                                <span className="flex items-center gap-2 animate-fadeIn"><CheckCircle2 size={20}/> Registration Successful</span>
+                            ) : (
+                                <>
+                                    <TrendingUp size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    <span>Create Account</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </form>
 
-                <div className="text-center mt-8 pt-4 border-t border-white/10 text-sm font-bold text-gray-500 uppercase tracking-widest">
+                <div className="text-center mt-8 pt-6 border-t border-white/10 text-sm font-medium text-white/50 relative z-10 animate-fadeIn opacity-0" style={{ animationDelay: '1s', animationFillMode: 'forwards' }}>
                     Already have an account? 
-                    <Link to="/login" className="text-blue-400 font-medium ml-2 hover:text-[#84CC16] transition-colors underline decoration-blue-400">
+                    <button onClick={() => { setIsExiting(true); setTimeout(() => navigate('/login'), 400); }} className="text-[#22c55e] font-semibold ml-1 hover:text-[#4ade80] transition-colors hover:underline cursor-pointer">
                         Log in here
-                    </Link>
+                    </button>
                 </div>
             </div>
             
-            {/* CSS for custom animation */}
-            <style jsx="true">{`
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(30px); }
-                    to { opacity: 1; transform: translateY(0); }
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes scaleUp { 0% { opacity: 0; transform: scale(0.95) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+                @keyframes slideUp { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
+                @keyframes slideDown { 0% { opacity: 0; transform: translateY(-15px); } 100% { opacity: 1; transform: translateY(0); } }
+                @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+                @keyframes float { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-20px) rotate(45deg); } }
+                
+                .animate-scaleUp { animation: scaleUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-slideUp { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-slideDown { animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-fadeIn { animation: fadeIn 0.6s ease-out forwards; }
+                .animate-float { animation: float 10s ease-in-out infinite; }
+                .animate-pulse-slow { animation: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+                input.autofill-fix:-webkit-autofill,
+                input.autofill-fix:-webkit-autofill:hover, 
+                input.autofill-fix:-webkit-autofill:focus, 
+                input.autofill-fix:-webkit-autofill:active {
+                    -webkit-box-shadow: 0 0 0 30px #062314 inset !important;
+                    -webkit-text-fill-color: white !important;
+                    transition: background-color 5000s ease-in-out 0s;
                 }
-                .animate-fadeInUp {
-                    animation: fadeInUp 1s ease-out;
-                }
-                @keyframes blob {
-                    0% { transform: translate(0px, 0px) scale(1); }
-                    33% { transform: translate(30px, -50px) scale(1.1); }
-                    66% { transform: translate(-20px, 20px) scale(0.9); }
-                    100% { transform: translate(0px, 0px) scale(1); }
-                }
-                .animate-blob {
-                    animation: blob 10s infinite cubic-bezier(0.42, 0, 0.58, 1);
-                }
-                .animation-delay-2000 {
-                    animation-delay: 2s;
-                }
-            `}</style>
+            `}} />
         </div>
     );
 }

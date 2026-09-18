@@ -4,7 +4,7 @@ import axios from 'axios';
 import { 
     ArrowLeft, Megaphone, Send, Trash2, Edit3, 
     Search, History, Plus, EyeOff, Eye, Loader2, User, X, AlertCircle, 
-    CheckCircle2, LayoutDashboard, Package, Gift, Users, Menu
+    CheckCircle2, LayoutDashboard, Package, Gift, Users, Menu, Leaf, LogOut
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -17,6 +17,7 @@ export default function AdminCampaigns() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isEditing, setIsEditing] = useState(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(null);
     const [deleteId, setDeleteId] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -31,7 +32,10 @@ export default function AdminCampaigns() {
 
     const fetchPosts = async () => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/campaigns`);
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_BASE_URL}/api/campaigns`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setPosts(res.data);
         } catch (error) {
             console.error("Fetch Error:", error);
@@ -43,18 +47,23 @@ export default function AdminCampaigns() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const adminName = adminInfo?.name || "Administrator";
+        setErrorMsg(null);
         const adminId = adminInfo?._id || "Unknown ID";
 
         try {
+            const token = localStorage.getItem('token');
             if (isEditing) {
-                await axios.put(`${API_BASE_URL}/api/campaigns/${isEditing}`, formData);
+                await axios.put(`${API_BASE_URL}/api/campaigns/${isEditing}`, formData, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
             } else {
                 await axios.post(`${API_BASE_URL}/api/campaigns`, { 
                     ...formData, 
-                    postedBy: adminName,
+                    postedBy: 'Admin', // Forced to Admin as requested
                     adminId: adminId,
                     status: 'Active' 
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
             }
             setShowSuccess(true);
@@ -62,7 +71,11 @@ export default function AdminCampaigns() {
             resetForm();
             fetchPosts();
         } catch (error) {
-            alert("System Error: Could not save campaign.");
+            if (error.response?.status === 429) {
+                setErrorMsg("Rate limit exceeded: You are posting too fast. Please wait a moment before trying again.");
+            } else {
+                setErrorMsg(error.response?.data?.message || "System Error: Could not save campaign.");
+            }
         } finally {
             setLoading(false);
         }
@@ -70,21 +83,27 @@ export default function AdminCampaigns() {
 
     const toggleArchive = async (post) => {
         try {
+            const token = localStorage.getItem('token');
             const newStatus = post.status === 'Archived' ? 'Active' : 'Archived';
-            await axios.put(`${API_BASE_URL}/api/campaigns/${post._id}`, { status: newStatus });
+            await axios.put(`${API_BASE_URL}/api/campaigns/${post._id}`, { status: newStatus }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setPosts(posts.map(p => p._id === post._id ? { ...p, status: newStatus } : p));
         } catch (error) {
-            alert("Archive update failed.");
+            setErrorMsg("Archive update failed.");
         }
     };
 
     const handleDelete = async () => {
         try {
-            await axios.delete(`${API_BASE_URL}/api/campaigns/${deleteId}`);
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API_BASE_URL}/api/campaigns/${deleteId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setPosts(posts.filter(p => p._id !== deleteId));
             setDeleteId(null);
         } catch (error) {
-            alert("Delete failed.");
+            setErrorMsg("Delete failed.");
         }
     };
 
@@ -99,132 +118,179 @@ export default function AdminCampaigns() {
         setFormData({ title: '', content: '', category: 'News', imageUrl: '' });
     };
 
+    const handleNavigate = (path) => {
+        if (window.location.pathname === path) return;
+        navigate(path);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
+
     const filteredPosts = posts.filter(p => 
         p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
         (p.postedBy && p.postedBy.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-900 flex flex-col overflow-x-hidden">
+        <div className="min-h-screen bg-[#F4F9F5] font-sans text-[#051F20] flex flex-col overflow-x-hidden selection:bg-[#22c55e]/30">
             
-            {/* --- TOP ADMIN NAVBAR --- */}
-            <nav className="bg-slate-900 text-white px-4 py-2 shadow-md sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/admin-panel')} className="p-1.5 bg-teal-600 rounded-lg hover:bg-teal-50 transition-colors cursor-pointer shadow-lg active:scale-90">
-                            <LayoutDashboard size={18} />
-                        </button>
-                        <div className="text-green-400 font-bold text-sm tracking-tighter italic cursor-pointer hidden sm:block" onClick={() => navigate('/admin-panel')}>
-                            EcoCycle Admin
+            {/* --- DEEP ECO NAVBAR --- */}
+            <header className="fixed top-0 left-0 right-0 z-[100] bg-[#051F20] border-b border-white/10 shadow-md">
+                <div className="max-w-7xl mx-auto px-6 lg:px-10 h-24 flex justify-between items-center">
+                    
+                    <div className="flex items-center gap-8 lg:gap-12">
+                        <div className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform duration-300" onClick={() => handleNavigate('/admin-panel')}>
+                            <Leaf className="text-[#22c55e] h-8 w-8 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
+                            <span className="text-2xl font-bold tracking-wide text-white">EcoCycle <span className="text-xs uppercase px-2 py-0.5 bg-[#22c55e]/20 text-[#22c55e] rounded border border-[#22c55e]/30">Admin</span></span>
                         </div>
+
+                        {/* NAVBAR LINKS */}
+                        <nav className="hidden xl:flex items-center gap-6">
+                            <button onClick={() => handleNavigate('/admin-panel')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-all cursor-pointer">Dashboard</button>
+                            <button onClick={() => handleNavigate('/admin/waste')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-all cursor-pointer">Waste Logs</button>
+                            <button onClick={() => handleNavigate('/admin/campaigns')} className="text-sm font-semibold text-white hover:text-[#22c55e] transition-all cursor-pointer">Campaigns</button>
+                            <button onClick={() => handleNavigate('/admin/rewards')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-all cursor-pointer">Rewards</button>
+                            <button onClick={() => handleNavigate('/admin/analytics')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-all cursor-pointer">Intelligence</button>
+                            <button onClick={() => handleNavigate('/admin/users')} className="text-sm font-semibold text-[#8EB69B] hover:text-[#22c55e] transition-all cursor-pointer">Users</button>
+                        </nav>
                     </div>
 
-                    <div className="hidden md:flex gap-4">
-                        <button onClick={() => navigate('/admin-panel')} className="text-[11px] font-semibold text-slate-300 hover:text-white cursor-pointer transition-all">Home</button>
-                        <button onClick={() => navigate('/admin-waste')} className="text-[11px] font-semibold text-slate-300 hover:text-white cursor-pointer">Logistics</button>
-                        <button onClick={() => navigate('/admin-rewards')} className="text-[11px] font-semibold text-slate-300 hover:text-white cursor-pointer">Rewards</button>
-                        <button onClick={() => navigate('/admin-campaigns')} className="text-[11px] font-bold text-white border-b border-green-500 pb-0.5 cursor-pointer">Campaigns</button>
-                        <button onClick={() => navigate('/admin-users')} className="text-[11px] font-semibold text-slate-300 hover:text-white cursor-pointer">Users</button>
-                    </div>
+                    <div className="flex items-center gap-6">
+                        <div className="hidden lg:block text-right">
+                            <p className="text-sm font-semibold text-white">{adminInfo.name}</p>
+                            <p className="text-xs text-[#22c55e]">System Administrator</p>
+                        </div>
 
-                    <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase hidden sm:block">{adminInfo.name}</span>
-                        <button className="md:hidden p-1 cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        <button 
+                            onClick={handleLogout}
+                            className="hidden lg:flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all cursor-pointer active:scale-95"
+                        >
+                            <LogOut size={16} /> Sign Out
+                        </button>
+                        
+                        <button className="xl:hidden text-white hover:text-[#22c55e] active:scale-90 transition-all cursor-pointer" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                         </button>
                     </div>
                 </div>
+            </header>
 
-                {isMobileMenuOpen && (
-                    <div className="md:hidden absolute top-full left-0 w-full bg-slate-900 p-4 space-y-3 border-t border-slate-800 animate-in slide-in-from-top-2 shadow-xl">
-                        <button onClick={() => {navigate('/admin-panel'); setIsMobileMenuOpen(false);}} className="block w-full text-left text-xs font-bold text-slate-300">Home</button>
-                        <button onClick={() => {navigate('/admin-waste'); setIsMobileMenuOpen(false);}} className="block w-full text-left text-xs font-bold text-slate-300">Logistics</button>
-                        <button onClick={() => {navigate('/admin-campaigns'); setIsMobileMenuOpen(false);}} className="block w-full text-left text-xs font-bold text-green-400">Campaigns</button>
-                        <button onClick={() => {navigate('/admin-users'); setIsMobileMenuOpen(false);}} className="block w-full text-left text-xs font-bold text-slate-300">Users</button>
+            {/* MOBILE MENU DROPDOWN */}
+            {isMobileMenuOpen && (
+                <div className="xl:hidden fixed inset-0 z-[150] bg-[#051F20] pt-28 px-6 animate-fadeIn overflow-y-auto pb-12">
+                    <button className="absolute top-8 right-6 text-white hover:text-[#22c55e]" onClick={() => setIsMobileMenuOpen(false)}>
+                        <X size={32} />
+                    </button>
+                    <div className="flex flex-col gap-4">
+                        <button onClick={() => { handleNavigate('/admin-panel'); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-[#8EB69B] py-3 border-b border-white/10 text-left">Dashboard</button>
+                        <button onClick={() => { handleNavigate('/admin/waste'); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-[#8EB69B] py-3 border-b border-white/10 text-left">Waste Logistics</button>
+                        <button onClick={() => { handleNavigate('/admin/campaigns'); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-white py-3 border-b border-white/10 text-left">Campaigns</button>
+                        <button onClick={() => { handleNavigate('/admin/rewards'); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-[#8EB69B] py-3 border-b border-white/10 text-left">Rewards Engine</button>
+                        <button onClick={() => { handleNavigate('/admin/analytics'); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-[#8EB69B] py-3 border-b border-white/10 text-left">Intelligence</button>
+                        <button onClick={() => { handleNavigate('/admin/users'); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-[#8EB69B] py-3 border-b border-white/10 text-left">User Nodes</button>
+                        <button onClick={handleLogout} className="mt-6 py-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold">Sign Out</button>
                     </div>
-                )}
-            </nav>
+                </div>
+            )}
 
-            <main className="flex-1 max-w-5xl mx-auto w-full p-3 md:p-6 space-y-4">
+            <main className="flex-1 max-w-5xl mx-auto w-full px-4 md:px-10 pt-36 pb-24 space-y-8">
                 
-                {/* --- WELCOME HEADER --- */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                {/* --- HEADER CONTEXT CARD --- */}
+                <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-[0_10px_30px_rgba(5,31,32,0.03)] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 animate-fadeInUp opacity-0" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
                     <div>
-                        <h1 className="text-xl font-black text-slate-900 tracking-tight">
-                            Campaign Terminal: <span className="text-teal-600">{adminInfo.name}</span>
+                        <div className="inline-flex items-center gap-2 mb-2">
+                            <Leaf size={16} className="text-[#22c55e]" />
+                            <p className="text-xs font-bold text-[#235347] uppercase tracking-wider">Awareness Terminal</p>
+                        </div>
+                        <h1 className="text-3xl font-bold text-[#051F20] tracking-tight">
+                            Campaign Management: <span className="text-[#22c55e]">Admin</span>
                         </h1>
-                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-0.5 opacity-80">
-                            Central Awareness Management • {new Date().toLocaleDateString()}
+                        <p className="text-sm font-medium text-[#235347] mt-1">
+                            Central Awareness Node • {new Date().toLocaleDateString()}
                         </p>
                     </div>
-                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
-                        <button onClick={() => setView('create')} className={`px-4 py-1.5 text-[10px] font-black uppercase transition-all cursor-pointer rounded-md ${view === 'create' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Post Content</button>
-                        <button onClick={() => setView('history')} className={`px-4 py-1.5 text-[10px] font-black uppercase transition-all cursor-pointer rounded-md ${view === 'history' ? 'bg-white text-teal-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Admin History</button>
+                    <div className="flex bg-[#F4F9F5] p-1.5 rounded-2xl border border-gray-200 shadow-inner shrink-0">
+                        <button onClick={() => setView('create')} className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer rounded-xl active:scale-95 ${view === 'create' ? 'bg-[#051F20] text-white shadow-md' : 'text-[#235347] hover:bg-gray-200'}`}>Post Content</button>
+                        <button onClick={() => setView('history')} className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer rounded-xl active:scale-95 ${view === 'history' ? 'bg-[#051F20] text-white shadow-md' : 'text-[#235347] hover:bg-gray-200'}`}>Admin History</button>
                     </div>
                 </div>
 
                 {view === 'create' && (
-                    <div className="bg-white border border-slate-200 shadow-sm rounded-2xl flex flex-col md:flex-row overflow-hidden min-h-[400px]">
-                        <div className="md:w-1/4 bg-slate-900 p-6 text-white flex flex-col justify-between border-r border-slate-800">
+                    <div className="bg-white border border-gray-100 shadow-[0_10px_30px_rgba(5,31,32,0.03)] rounded-2xl p-8 md:p-10 animate-slideUp opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+                        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100">
+                            <div className="p-3 bg-[#F4F9F5] rounded-xl text-[#22c55e] border border-gray-100 shadow-sm">
+                                <Megaphone size={24} />
+                            </div>
                             <div>
-                                <Megaphone className="text-teal-400 mb-4" size={24} />
-                                <h2 className="text-lg font-black uppercase tracking-tighter mb-2 italic">Composer</h2>
-                                <p className="text-slate-400 text-xs leading-relaxed">Broadcast news or recycling facts to the community node.</p>
+                                <h2 className="text-xl font-bold text-[#051F20]">Content Composer</h2>
+                                <p className="text-xs font-medium text-[#8EB69B]">Broadcast announcements, facts, or events directly to citizen home pages.</p>
                             </div>
                         </div>
-                        <div className="flex-1 p-6 md:p-8">
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="space-y-3">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Headline</label>
-                                            <input required className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:border-teal-500 outline-none font-bold text-sm" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="Main Title..." />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Category</label>
-                                            <select className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-xs cursor-pointer outline-none focus:border-teal-500" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
-                                                <option value="News">News</option>
-                                                <option value="Recycling Fact">Recycling Fact</option>
-                                                <option value="Event">Event</option>
-                                            </select>
-                                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {errorMsg && (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 animate-fadeIn">
+                                    <div className="bg-red-100 p-2 rounded-lg flex-shrink-0">
+                                        <AlertCircle size={20} className="text-red-600" />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Media Source (Image URL)</label>
-                                        <input className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-teal-500" value={formData.imageUrl} onChange={(e) => setFormData({...formData, imageUrl: e.target.value})} placeholder="https://..." />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Content Details</label>
-                                        <textarea required rows="5" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-medium text-sm leading-relaxed outline-none focus:border-teal-500" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} placeholder="Enter full details..."></textarea>
+                                        <p className="text-sm font-bold text-red-900">Operation Failed</p>
+                                        <p className="text-xs text-red-700">{errorMsg}</p>
                                     </div>
                                 </div>
+                            )}
 
-                                {showSuccess && (
-                                    <div className="flex items-center gap-2 text-teal-600 font-black text-xs animate-bounce justify-center">
-                                        <CheckCircle2 size={16} /> DATA TRANSMITTED SUCCESSFULLY
-                                    </div>
-                                )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-xs font-bold text-[#235347] uppercase tracking-wider block mb-2">Headline</label>
+                                    <input required className="w-full px-4 py-3.5 bg-[#F4F9F5] border border-gray-200 rounded-xl focus:bg-white focus:border-[#22c55e] focus:ring-4 focus:ring-[#22c55e]/10 outline-none font-bold text-sm text-[#051F20] transition-all" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="Main Title..." />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-[#235347] uppercase tracking-wider block mb-2">Category</label>
+                                    <select className="w-full px-4 py-3.5 bg-[#F4F9F5] border border-gray-200 rounded-xl font-bold text-xs cursor-pointer outline-none focus:border-[#22c55e] text-[#051F20] transition-all" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
+                                        <option value="News">News</option>
+                                        <option value="Recycling Fact">Recycling Fact</option>
+                                        <option value="Event">Event</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                                <button type="submit" className="w-full bg-slate-900 text-white font-black py-3.5 rounded-xl hover:bg-teal-600 transition-all uppercase text-[11px] tracking-widest cursor-pointer shadow-lg active:scale-95">
-                                    {loading ? "PROCESSING..." : isEditing ? "UPDATE BROADCAST" : "PUBLISH TO CITIZENS"}
-                                </button>
-                            </form>
-                        </div>
+                            <div>
+                                <label className="text-xs font-bold text-[#235347] uppercase tracking-wider block mb-2">Media Source (Image URL)</label>
+                                <input className="w-full px-4 py-3.5 bg-[#F4F9F5] border border-gray-200 rounded-xl text-xs font-bold outline-none focus:bg-white focus:border-[#22c55e] text-[#051F20] transition-all" value={formData.imageUrl} onChange={(e) => setFormData({...formData, imageUrl: e.target.value})} placeholder="https://..." />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-[#235347] uppercase tracking-wider block mb-2">Content Details</label>
+                                <textarea required rows="6" className="w-full px-4 py-3.5 bg-[#F4F9F5] border border-gray-200 rounded-xl font-medium text-sm leading-relaxed outline-none focus:bg-white focus:border-[#22c55e] text-[#051F20] transition-all" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} placeholder="Enter full details..."></textarea>
+                            </div>
+
+                            {showSuccess && (
+                                <div className="flex items-center gap-2 text-[#22c55e] font-bold text-xs animate-bounce justify-center">
+                                    <CheckCircle2 size={16} /> DATA TRANSMITTED SUCCESSFULLY TO CITIZEN NODES
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={loading} className="w-full bg-[#051F20] text-white font-bold py-4 rounded-xl hover:bg-[#22c55e] hover:text-[#051F20] transition-all uppercase text-xs tracking-wider cursor-pointer shadow-md active:scale-95 disabled:opacity-50">
+                                {loading ? "PROCESSING..." : isEditing ? "UPDATE BROADCAST" : "PUBLISH TO CITIZENS"}
+                            </button>
+                        </form>
                     </div>
                 )}
 
                 {view === 'history' && (
-                    <div className="space-y-4">
-                        <div className="bg-white px-4 py-2 border border-slate-200 flex items-center gap-3 rounded-xl shadow-sm">
-                            <Search size={16} className="text-slate-400" />
-                            <input type="text" placeholder="Search archives..." className="flex-1 outline-none text-sm font-bold bg-transparent py-1.5" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <div className="space-y-4 animate-slideUp opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+                        <div className="bg-white px-5 py-3.5 border border-gray-100 flex items-center gap-3 rounded-2xl shadow-sm">
+                            <Search size={18} className="text-gray-400" />
+                            <input type="text" placeholder="Search archives..." className="flex-1 outline-none text-sm font-medium bg-transparent text-[#051F20]" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
 
-                        {/* FIXED: No Horizontal Scroll on Mobile */}
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
-                            {/* TABLE HEAD: Hidden on Mobile */}
+                        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
                             <table className="w-full text-left hidden md:table">
-                                <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <thead className="bg-[#F4F9F5] border-b border-gray-100 text-xs font-bold text-[#235347] uppercase tracking-wider">
                                     <tr>
                                         <th className="px-6 py-4">Title</th>
                                         <th className="px-6 py-4">Admin Identity</th>
@@ -232,53 +298,53 @@ export default function AdminCampaigns() {
                                         <th className="px-6 py-4 text-right">Master Control</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-sm font-bold">
+                                <tbody className="text-sm font-medium">
                                     {filteredPosts.map(post => (
-                                        <tr key={post._id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${post.status === 'Archived' ? 'bg-slate-50 opacity-60' : ''}`}>
-                                            <td className="px-6 py-4 text-slate-800 italic uppercase tracking-tighter truncate max-w-[200px]">{post.title}</td>
+                                        <tr key={post._id} className={`border-b border-gray-50 hover:bg-[#F4F9F5]/50 transition-colors ${post.status === 'Archived' ? 'bg-gray-50 opacity-60' : ''}`}>
+                                            <td className="px-6 py-4 font-bold text-[#051F20] truncate max-w-[220px]">{post.title}</td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs text-slate-600">{post.postedBy || "Admin"}</span>
-                                                    <span className="text-[9px] text-slate-400 font-mono">ID: {post.adminId?.slice(-6) || "N/A"}</span>
+                                                    <span className="text-xs font-bold text-[#051F20]">{post.postedBy || "Admin"}</span>
+                                                    <span className="text-[10px] text-[#8EB69B] font-mono">ID: {post.adminId?.slice(-6) || "N/A"}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-black border ${post.status === 'Archived' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-teal-50 text-teal-600 border-teal-100'}`}>
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${post.status === 'Archived' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                                                     {post.status || 'Active'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right flex justify-end gap-3">
-                                                <button onClick={() => toggleArchive(post)} className="cursor-pointer text-slate-400 hover:text-teal-600 p-1.5 hover:bg-white rounded-lg transition-all">{post.status === 'Archived' ? <Eye size={16}/> : <EyeOff size={16}/>}</button>
-                                                <button onClick={() => handleEdit(post)} className="cursor-pointer text-slate-400 hover:text-teal-600 p-1.5 hover:bg-white rounded-lg transition-all"><Edit3 size={16}/></button>
-                                                <button onClick={() => setDeleteId(post._id)} className="text-rose-300 hover:text-rose-600 cursor-pointer p-1.5 hover:bg-white rounded-lg transition-all"><Trash2 size={16}/></button>
+                                            <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                                <button onClick={() => toggleArchive(post)} className="cursor-pointer text-gray-400 hover:text-[#22c55e] p-2 hover:bg-[#F4F9F5] rounded-xl transition-all" title="Toggle Archive">{post.status === 'Archived' ? <Eye size={16}/> : <EyeOff size={16}/>}</button>
+                                                <button onClick={() => handleEdit(post)} className="cursor-pointer text-gray-400 hover:text-[#22c55e] p-2 hover:bg-[#F4F9F5] rounded-xl transition-all" title="Edit"><Edit3 size={16}/></button>
+                                                <button onClick={() => setDeleteId(post._id)} className="text-rose-400 hover:text-rose-600 cursor-pointer p-2 hover:bg-rose-50 rounded-xl transition-all" title="Delete"><Trash2 size={16}/></button>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
 
-                            {/* MOBILE LIST: Visible only on small screens */}
-                            <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                            {/* MOBILE LIST */}
+                            <div className="md:hidden flex flex-col divide-y divide-gray-100">
                                 {filteredPosts.map(post => (
-                                    <div key={post._id} className={`p-4 flex flex-col gap-3 ${post.status === 'Archived' ? 'bg-slate-50 opacity-70' : 'bg-white'}`}>
+                                    <div key={post._id} className={`p-5 flex flex-col gap-3 ${post.status === 'Archived' ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-black text-slate-800 uppercase tracking-tighter italic text-sm truncate">{post.title}</h4>
-                                                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">{post.postedBy || "Admin"}</p>
+                                                <h4 className="font-bold text-[#051F20] text-base truncate">{post.title}</h4>
+                                                <p className="text-xs font-bold text-[#8EB69B] mt-1 uppercase">{post.postedBy || "Admin"}</p>
                                             </div>
-                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border shrink-0 ${post.status === 'Archived' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-teal-50 text-teal-600 border-teal-100'}`}>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border shrink-0 ${post.status === 'Archived' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                                                 {post.status || 'Active'}
                                             </span>
                                         </div>
-                                        <div className="flex justify-end gap-2 pt-2">
-                                            <button onClick={() => toggleArchive(post)} className="p-2 bg-slate-50 text-slate-400 rounded-lg cursor-pointer flex-1 flex justify-center">
-                                                {post.status === 'Archived' ? <Eye size={14}/> : <EyeOff size={14}/>}
+                                        <div className="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                                            <button onClick={() => toggleArchive(post)} className="p-2.5 bg-[#F4F9F5] text-[#235347] rounded-xl cursor-pointer flex-1 flex justify-center active:scale-95">
+                                                {post.status === 'Archived' ? <Eye size={16}/> : <EyeOff size={16}/>}
                                             </button>
-                                            <button onClick={() => handleEdit(post)} className="p-2 bg-slate-50 text-slate-400 rounded-lg cursor-pointer flex-1 flex justify-center">
-                                                <Edit3 size={14}/>
+                                            <button onClick={() => handleEdit(post)} className="p-2.5 bg-[#F4F9F5] text-[#235347] rounded-xl cursor-pointer flex-1 flex justify-center active:scale-95">
+                                                <Edit3 size={16}/>
                                             </button>
-                                            <button onClick={() => setDeleteId(post._id)} className="p-2 bg-rose-50 text-rose-400 rounded-lg cursor-pointer flex-1 flex justify-center">
-                                                <Trash2 size={14}/>
+                                            <button onClick={() => setDeleteId(post._id)} className="p-2.5 bg-rose-50 text-rose-600 rounded-xl cursor-pointer flex-1 flex justify-center active:scale-95">
+                                                <Trash2 size={16}/>
                                             </button>
                                         </div>
                                     </div>
@@ -289,24 +355,53 @@ export default function AdminCampaigns() {
                 )}
             </main>
 
+            {/* --- FOOTER --- */}
+            <footer className="w-full bg-[#051F20] text-[#8EB69B] border-t border-white/10 py-10 px-6 lg:px-10 mt-auto">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex flex-col items-center md:items-start">
+                        <div className="flex items-center gap-2 text-white font-bold text-lg">
+                            <Leaf size={18} className="text-[#22c55e]" />
+                            <span>EcoCycle Awareness Hub</span>
+                        </div>
+                        <p className="text-xs text-[#8EB69B] mt-1">© {new Date().getFullYear()} All Rights Reserved.</p>
+                    </div>
+
+                    <div className="text-center md:text-right">
+                        <p className="text-xs font-semibold text-[#8EB69B]">
+                            Website By <span className="text-white">MAHR</span>
+                        </p>
+                    </div>
+                </div>
+            </footer>
+
             {deleteId && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xl max-w-xs w-full text-center animate-in zoom-in-95">
-                        <AlertCircle className="text-rose-500 mx-auto mb-3" size={32} />
-                        <h3 className="text-base font-black mb-1 text-slate-800">Confirm Erase?</h3>
-                        <p className="text-xs text-slate-500 mb-6 font-medium italic">Broadcast data will be permanently terminated from logs.</p>
+                <div className="fixed inset-0 z-[150] bg-[#051F20]/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-2xl max-w-sm w-full text-center animate-scaleIn">
+                        <AlertCircle className="text-rose-500 mx-auto mb-4" size={36} />
+                        <h3 className="text-xl font-bold mb-2 text-[#051F20]">Confirm Erase?</h3>
+                        <p className="text-xs text-[#235347] mb-6 leading-relaxed">Broadcast data will be permanently terminated from community logs.</p>
                         <div className="flex gap-3">
-                            <button onClick={() => setDeleteId(null)} className="flex-1 py-2.5 bg-slate-50 font-bold rounded-xl cursor-pointer text-slate-500 hover:bg-slate-100 uppercase text-[10px] tracking-widest transition-all">Cancel</button>
-                            <button onClick={handleDelete} className="flex-1 py-2.5 bg-rose-600 text-white font-bold rounded-xl cursor-pointer hover:bg-rose-700 uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Delete</button>
+                            <button onClick={() => setDeleteId(null)} className="flex-1 py-3.5 bg-[#F4F9F5] font-bold rounded-xl cursor-pointer text-[#235347] hover:bg-gray-200 uppercase text-xs tracking-wider transition-all active:scale-95">Cancel</button>
+                            <button onClick={handleDelete} className="flex-1 py-3.5 bg-rose-600 text-white font-bold rounded-xl cursor-pointer hover:bg-rose-700 uppercase text-xs tracking-wider shadow-md active:scale-95 transition-all">Delete</button>
                         </div>
                     </div>
                 </div>
             )}
             
-            <style jsx="true">{`
+            <style dangerouslySetInnerHTML={{__html: `
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                
+                .animate-fadeInUp { animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-slideUp { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-scaleIn { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
+            `}} />
         </div>
     );
 }

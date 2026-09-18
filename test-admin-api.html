@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Admin API</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #0f0; border: none; font-weight: bold; }
+        pre { background: #000; padding: 15px; border: 1px solid #0f0; overflow-x: auto; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        input { padding: 8px; margin: 5px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>🔐 EcoCycle Admin API Tester</h1>
+    
+    <div>
+        <h3>Step 1: Login</h3>
+        <input type="email" id="email" value="admin@example.com" placeholder="Email">
+        <input type="password" id="password" value="admin123" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+    
+    <div>
+        <h3>Step 2: Test APIs (Login first!)</h3>
+        <button onclick="testUsers()">Get Users</button>
+        <button onclick="testWaste()">Get Waste</button>
+        <button onclick="testAnalytics()">Get Analytics</button>
+        <button onclick="clearStorage()">Clear LocalStorage</button>
+    </div>
+    
+    <div>
+        <h3>Token:</h3>
+        <pre id="token">Not logged in</pre>
+    </div>
+    
+    <div>
+        <h3>Response:</h3>
+        <pre id="response">No response yet</pre>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:5000';
+        let token = localStorage.getItem('token');
+        
+        if (token) {
+            document.getElementById('token').textContent = token.substring(0, 50) + '...';
+        }
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await res.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                
+                if (data.success && data.data.token) {
+                    token = data.data.token;
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('userInfo', JSON.stringify(data.data));
+                    document.getElementById('token').textContent = token.substring(0, 50) + '...';
+                    document.getElementById('token').className = 'success';
+                    alert('✅ Login successful! Token saved.');
+                } else {
+                    document.getElementById('token').className = 'error';
+                    alert('❌ Login failed!');
+                }
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+                document.getElementById('response').className = 'error';
+            }
+        }
+        
+        async function testUsers() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/api/users/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await res.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                
+                if (res.ok) {
+                    document.getElementById('response').className = 'success';
+                    const userCount = data.users ? data.users.length : (Array.isArray(data) ? data.length : 0);
+                    alert(`✅ Found ${userCount} users!`);
+                } else {
+                    document.getElementById('response').className = 'error';
+                    alert('❌ Failed to fetch users!');
+                }
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+                document.getElementById('response').className = 'error';
+            }
+        }
+        
+        async function testWaste() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/api/waste/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await res.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                
+                if (res.ok) {
+                    document.getElementById('response').className = 'success';
+                    const wasteCount = Array.isArray(data) ? data.length : (data.data?.wasteLogs?.length || 0);
+                    alert(`✅ Found ${wasteCount} waste entries!`);
+                } else {
+                    document.getElementById('response').className = 'error';
+                    alert('❌ Failed to fetch waste!');
+                }
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+                document.getElementById('response').className = 'error';
+            }
+        }
+        
+        async function testAnalytics() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/api/analytics/waste-stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await res.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                
+                if (res.ok) {
+                    document.getElementById('response').className = 'success';
+                    alert(`✅ Analytics loaded! Total: ${data.globalTotal} kg`);
+                } else {
+                    document.getElementById('response').className = 'error';
+                    alert('❌ Failed to fetch analytics!');
+                }
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+                document.getElementById('response').className = 'error';
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            token = null;
+            document.getElementById('token').textContent = 'Not logged in';
+            document.getElementById('response').textContent = 'LocalStorage cleared!';
+            alert('✅ LocalStorage cleared! Please login again.');
+        }
+    </script>
+</body>
+</html>

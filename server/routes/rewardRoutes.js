@@ -1,12 +1,43 @@
 
 import express from 'express';
+import {
+    getRewards,
+    getRewardById,
+    redeemReward,
+    getUserRedemptions,
+    getRedemptionByCode,
+    getAllRedemptions,
+    updateRedemptionStatus,
+    getRewardCategories,
+    getPartners
+} from '../controllers/rewardsController.js';
+import { protect, authorize } from '../middleware/authMiddleware.js';
 import User from '../models/User.js';
 import Voucher from '../models/Voucher.js';
 
 const router = express.Router();
 
+// Protected routes - require authentication
+router.use(protect);
+
+// Public reward browsing (for authenticated users)
+router.get('/', getRewards);
+router.get('/categories', getRewardCategories);
+router.get('/partners', getPartners);
+router.get('/:id', getRewardById);
+
+// User redemption management
+router.post('/:rewardId/redeem', redeemReward);
+router.get('/my-redemptions', getUserRedemptions);
+router.get('/redemption/:code', getRedemptionByCode);
+
+// Admin routes
+router.get('/admin/redemptions', authorize('admin'), getAllRedemptions);
+router.put('/admin/redemptions/:id', authorize('admin'), updateRedemptionStatus);
+
+// Legacy routes for backward compatibility
 // 1. Get all citizens and their current points
-router.get('/users-points', async (req, res) => {
+router.get('/legacy/users-points', authorize('admin'), async (req, res) => {
     try {
         const users = await User.find({ role: 'citizen' }).select('name email points');
         res.status(200).json(users);
@@ -16,7 +47,7 @@ router.get('/users-points', async (req, res) => {
 });
 
 // 2. Issue a voucher (Admin logic)
-router.post('/issue-voucher', async (req, res) => {
+router.post('/legacy/issue-voucher', authorize('admin'), async (req, res) => {
     const { userId, shopName, discountAmount, pointsRequired, code } = req.body;
 
     try {

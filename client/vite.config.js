@@ -9,5 +9,9 @@ export default defineConfig({
     tailwindcss(), 
     
   ],
+  server: {
+    host: 'localhost',
+    port: 3000
+  }
   // base: process.env.VITE_BASE_PATH || '/EcoCycle_P',
 })
